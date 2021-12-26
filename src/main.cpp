@@ -1,10 +1,10 @@
 /**************************************************************************************/
-/*  "MrDiy Audio Notifier"              */
+/*  "MrDiy Audio Notifier"                                                            */
 /*  Credits to original source : https://gitlab.com/MrDIYca/mrdiy-audio-notifier      */   
-/*  Modified by Schmurtz for Platformio and ESP32 :                                     */
+/*  Modified by Schmurtz for Platformio and ESP32 :                                   */
 /*                                                                                    */
 /*  Release Notes (yyyy/mm/dd):                                                       */
-/*  V0.1 - 2021/12/22 :                                                                     */
+/*  V0.1 - 2021/12/22 :                                                               */
 /*    - Added these comments, pinouts and additionnal DAC settings                    */
 /*    - Now compatible with platformio                                                */
 /*    - Now compatible wih ESP32                                                      */
@@ -403,6 +403,7 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       rtttl = new AudioGeneratorRTTTL();
       rtttl->begin(file_progmem, out);
       broadcastStatus("status", "idle");
+      // an idea from the great project ESParkle to adjust the volume difference between mp3 and RTTTL : https://github.com/CosmicMac/ESParkle#settings
     }
 
     //got a TTS request ----------------------------------------------------

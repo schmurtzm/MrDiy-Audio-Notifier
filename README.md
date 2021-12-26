@@ -1,9 +1,11 @@
 # MrDiy Audio Notifier - Schmurtz Edition
  MrDiy Audio Notifier (based on esp8266audio) with some modifications :
  ----
-- ported to platformio
-- can be compiled for ESP8266 and ESP32
+- Ported to platformio (with differents recommanded settings for ESP8266audio)
+- Can be compiled for ESP8266 and ESP32
 - Google Translate TTS (so a little less "cloudless" but multilingual and better voice than the included ESP8266SAM)
+- This code also allows to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
+- You’ll also find some useful comments for wiring your DAC quickly or to improve the code (sound level of RTTTS, ssl, IotWebConf migration to v3.x...).
 
  Some issues for now :
  ----
