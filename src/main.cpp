@@ -1,6 +1,6 @@
 /**************************************************************************************/
 /*  "MrDiy Audio Notifier"                                                            */
-/*  Credits to original source : https://gitlab.com/MrDIYca/mrdiy-audio-notifier      */   
+/*  Credits to original source : https://gitlab.com/MrDIYca/mrdiy-audio-notifier      */
 /*  Modified by Schmurtz for Platformio and ESP32 :                                   */
 /*                                                                                    */
 /*  Release Notes (yyyy/mm/dd):                                                       */
@@ -9,18 +9,97 @@
 /*    - Now compatible with platformio                                                */
 /*    - Now compatible wih ESP32                                                      */
 /*    - Added support for Google Translate TTS                                        */
+/*  V0.2 - 2021/12/29 :                                                               */
+/*    - fix playing RTTTL & SAM                                                       */
+/*    - added aac playback, useful for many radios                                    */
+/*    - added flac playback (working?)                                                */
+/*    - added comments to change the SAMvoice (robot, elf , ET...)                    */
+/*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""          */
+/*      due to mqtt actions before wifi connects                                      */
 /*                                                                                    */
-/*                                                                                    */
-/*  Credits...                                                                        */
-/************************************************************************************* /
+/**************************************************************************************/
 
-  ______    _____   _____    ____    ___  
- |  ____|  / ____| |  __ \  |___ \  |__ \ 
- | |__    | (___   | |__) |   __) |    ) |
- |  __|    \___ \  |  ___/   |__ <    / / 
- | |____   ____) | | |       ___) |  / /_ 
- |______| |_____/  |_|      |____/  |____|
- 
+/* ============================================================================================================
+
+  MrDIY Audio Notifier is a cloud-free media notifier that can play MP3s, stream icecast radios, read text
+  and play RTTTL ringtones. It is controller over MQTT.
+
+
+  + MQTT COMMANDS:  ( 'your_custom_mqtt_topic' is the MQTT prefix defined during the setup)
+
+    - Play an MP3             MQTT topic: "your_custom_mqtt_topic/play"
+                              MQTT load: http://url-to-the-mp3-file/file.mp3
+                              remark : supports HTTP only, no HTTPS. -> this could be a solution : https://github.com/earlephilhower/ESP8266Audio/pull/410
+
+    - Play an AAC             MQTT topic: "your_custom_mqtt_topic/aac"  (better for ESP32, hard for esp8266)
+                              MQTT load: http://url-to-the-aac-file/file.aac
+
+    - Play a Flac             MQTT topic: "your_custom_mqtt_topic/flac"  (better for ESP32, hard for esp8266)
+                              MQTT load: http://url-to-the-flac-file/file.flac
+
+    - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
+                              MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://22203.live.streamtheworld.com/WHTAFM.mp3
+
+    - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
+                              MQTT load: RTTTL formated text, example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
+
+    - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
+                              MQTT load: Text to be read, example: Hello There. How. Are. You?
+
+    - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
+
+    - Change the Volume       MQTT topic: "your_custom_mqtt_topic/volume"
+                              MQTT load: a double between 0.00 and 1.00, example: 0.7
+
+    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
+                              MQTT load: Text to be read, example: Hello There. How. Are. You?
+
+
+
+  + ADDITIONAL INFORMATION:
+
+    - The notifier sends status updates on MQTT topic: "your_custom_mqtt_topic/status" with these values:
+
+                "playing"       either playing an mp3, a ringtone or saying a text
+                "idle"          idle and waiting for a command
+                "error"         error when receiving a command: example: MP3 file URL can't be loaded
+
+    - The LWT MQTT topic: "your_custom_topic/LWT" with values:
+                  "online"
+                  "offline"
+
+    - At boot, the notifier plays a 2 second audio chime when it is successfully connected to Wifi & MQTT
+
+============================================================================================================
+
+
+  + DEPENDENCIES:
+
+    - ESP8266              https://github.com/esp8266/Arduino
+    - ESP8266Audio         https://github.com/earlephilhower/ESP8266Audio
+    - ESP8266SAM           https://github.com/earlephilhower/ESP8266SAM
+    - IotWebConf           https://github.com/prampec/IotWebConf
+    - PubSubClient         https://github.com/knolleary/pubsubclient
+    - esp8266-google-tts   https://github.com/horihiro/esp8266-google-tts
+
+
+  Many thanks to all the authors and contributors to the above libraries - you have done an amazing job!
+
+
+============================================================================================================
+  + SETUP:
+
+    Option 1) Connect your ESP to an external amplifier.
+    Option 2) Use an extenal DAC (like MAX98357A)
+
+Depending the sound output you will choose below, here how to connect your DAC and your speaker :
+______    _____   _____    ____    ___  
+|  ____|  / ____| |  __ \  |___ \  |__ \ 
+| |__    | (___   | |__) |   __) |    ) |
+|  __|    \___ \  |  ___/   |__ <    / / 
+| |____   ____) | | |       ___) |  / /_ 
+|______| |_____/  |_|      |____/  |____|
+
 +-----------------+-----------------+--------------+--------------------+
 |   audio pins    |  External DAC   | Internal DAC |       No DAC       |
 +-----------------+-----------------+--------------+--------------------+
@@ -31,12 +110,12 @@
 | speaker R       | NA (on the DAC) | GPIO26       | GPIO22 (L&R mixed) |
 +-----------------+-----------------+--------------+--------------------+
 
-  ______    _____   _____     ___    ___      __      __  
- |  ____|  / ____| |  __ \   / _ \  |__ \    / /     / /  
- | |__    | (___   | |__) | | (_) |    ) |  / /_    / /_  
- |  __|    \___ \  |  ___/   > _ <    / /  | '_ \  | '_ \ 
- | |____   ____) | | |      | (_) |  / /_  | (_) | | (_) |
- |______| |_____/  |_|       \___/  |____|  \___/   \___/ 
+______    _____   _____     ___    ___      __      __  
+|  ____|  / ____| |  __ \   / _ \  |__ \    / /     / /  
+| |__    | (___   | |__) | | (_) |    ) |  / /_    / /_  
+|  __|    \___ \  |  ___/   > _ <    / /  | '_ \  | '_ \ 
+| |____   ____) | | |      | (_) |  / /_  | (_) | | (_) |
+|______| |_____/  |_|       \___/  |____|  \___/   \___/ 
 
 
 +-----------------+-----------------+------------------------+
@@ -49,83 +128,15 @@
 | speaker R       | NA (on the DAC) | GPIO3 (RX) (L&R mixed) |
 +-----------------+-----------------+------------------------+
 
-*/
+  For more info, please watch MrDiy instruction video at https://youtu.be/SPa9SMyPU58
+  MrDIY.ca & Schmurtz
 
+============================================================================================================== */
 
-
-/*  ============================================================================================================
-    MrDIY Audio Notifier is a cloud-free media notifier that can play MP3s, stream icecast radios, read text
-    and play RTTTL ringtones. It is controller over MQTT.
-
-      Option 1) Connect your audio jack to the Rx and GN pins. Then connect the audio jack to an external amplifier.
-      Option 2) Use an extenal DAC (like MAX98357A) and uncomment "#define USE_I2S" in the code.
-
-
-    + MQTT COMMANDS:  ( 'your_custom_mqtt_topic' is the MQTT prefix defined during the setup)
-
-      - Play an MP3             MQTT topic: "your_custom_mqtt_topic/play"
-                                MQTT load: http://url-to-the-mp3-file/file.mp3
-                                PS: supports HTTP only, no HTTPS. -> this could be a solution : https://github.com/earlephilhower/ESP8266Audio/pull/410
-
-      - Play an AAC             MQTT topic: "your_custom_mqtt_topic/aac"  (better for ESP32, hard for esp8266)
-                                MQTT load: http://url-to-the-aac-file/file.aac
-
-      - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
-                                MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://22203.live.streamtheworld.com/WHTAFM.mp3
-
-      - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
-                                MQTT load: RTTTL formated text, example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
-
-      - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
-                                MQTT load: Text to be read, example: Hello There. How. Are. You?
-
-      - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
-
-      - Change the Volume       MQTT topic: "your_custom_mqtt_topic/volume"
-                                MQTT load: a double between 0.00 and 1.00, example: 0.7
-
-      - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
-                                MQTT load: Text to be read, example: Hello There. How. Are. You?
-
-
-
-    + Additional informations :
-
-     - The notifier sends status updates on MQTT topic: "your_custom_mqtt_topic/status" with these values:
-
-                  "playing"       either playing an mp3, a ringtone or saying a text
-                  "idle"          idle and waiting for a command
-                  "error"         error when receiving a command: example: MP3 file URL can't be loaded
-
-     - The LWT MQTT topic: "your_custom_topic/LWT" with values:
-                   "online"
-                   "offline"
-
-     - At boot, the notifier plays a 2 second audio chime when it is successfully connected to Wifi & MQTT
-
-
-    + SETUP:
-
-    + DEPENDENCIES:
-
-     - ESP8266              https://github.com/esp8266/Arduino
-     - ESP8266Audio         https://github.com/earlephilhower/ESP8266Audio
-     - ESP8266SAM           https://github.com/earlephilhower/ESP8266SAM
-     - IotWebConf           https://github.com/prampec/IotWebConf
-     - PubSubClient         https://github.com/knolleary/pubsubclient
-     - esp8266-google-tts   https://github.com/horihiro/esp8266-google-tts
-
-
-    Many thanks to all the authors and contributors to the above libraries - you have done an amazing job!
-
-    For more info, please watch my instruction video at https://youtu.be/SPa9SMyPU58
-    MrDIY.ca
-
-  ============================================================================================================== */
 
 #define DEBUG_FLAG // uncomment to enable debug mode & Serial output
 
-// Please select one of these options
+// Please select one of these sound output options :
 //#define USE_NO_DAC           // uncomment to use no DAC, using software-simulated delta-sigma DAC
 //#define USE_EXTERNAL_DAC     // uncomment to use external I2S DAC 
 #define USE_INTERNAL_DAC     // uncomment to use the internal DAC of the ESP32 (not available on ESP8266)
@@ -528,6 +539,7 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
     }
 
     //got a Google TTS request ----------------------------------------------------
+    // Todo / idea : test if Google TTS if avaible, if not use SAM TTS instead
     if (!strcmp(topic, mqttFullTopic("tts")))
     {
       stopPlaying();

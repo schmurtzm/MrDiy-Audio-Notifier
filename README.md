@@ -1,8 +1,8 @@
 # MrDiy Audio Notifier - Schmurtz Edition
  ----
   MrDiy Audio Notifier is an audio player controlled by MQTT.
-  MrDiy Audio Notifier is based on esp8266audio library. 
-  This repo uses most of the MrDiy's code with some modifications :
+
+  MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of the MrDiy's code with some modifications :
 
 - Ported to platformio (with differents recommanded settings for ESP8266audio)
 - Can be compiled for ESP8266 and ESP32
@@ -85,7 +85,7 @@ You may also want to add a 220uF cap from USB5V to GND just to help filter out a
  #  Original description from MrDIY 
  https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 
-In this project, I will show you how you can use an ESP8266 module or board like the Wemos D1 Mini to play MP3, TTS and RTTL. It is controlled over MQTT. You will be able to send it an MQTT message with the URL of the MP3 file and it will play it for it. It is also capable to doing basic TTS and playback RTTL (aka Nokia) ringtone.
+In this project, I will show you how you can use an ESP8266 module or board like the Wemos D1 Mini to play MP3, TTS and RTTTL. It is controlled over MQTT. You will be able to send it an MQTT message with the URL of the MP3 file and it will play it for it. It is also capable to doing basic TTS and playback RTTTL (aka Nokia) ringtone.
 <br><br><br>
 **Watch the video**: click on the image below:
 
