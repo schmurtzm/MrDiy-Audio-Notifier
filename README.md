@@ -4,13 +4,14 @@
 - Ported to platformio (with differents recommanded settings for ESP8266audio)
 - Can be compiled for ESP8266 and ESP32
 - Google Translate TTS (so a little less "cloudless" but multilingual and better voice than the included ESP8266SAM)
+- ability to play AAC (required for many web radio)
 - This code also allows to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
 - You’ll also find some useful comments for wiring your DAC quickly or to improve the code (sound level of RTTTS, ssl, IotWebConf migration to v3.x...).
 
  Some issues for now :
  ----
  - Playing GoogleTTS crash at end (for both ESP8266 and ESP32) : [issue #327](https://github.com/earlephilhower/ESP8266Audio/issues/327)
- - Playing RTTTL (nokia tone) will never stop playing the last note (only for ESP32) : [issue #395](https://github.com/earlephilhower/ESP8266Audio/issues/395)
+ - <strike>Playing RTTTL (nokia tone) never stop playing the last note (ESP32 only) :</strike> [issue #395 resolved](https://github.com/earlephilhower/ESP8266Audio/issues/395)
  
  These issues are related to [ESP8266audio library](https://github.com/earlephilhower/ESP8266Audio) so it has been created on their repo ;)
  

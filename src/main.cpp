@@ -67,6 +67,9 @@
                                 MQTT load: http://url-to-the-mp3-file/file.mp3
                                 PS: supports HTTP only, no HTTPS. -> this could be a solution : https://github.com/earlephilhower/ESP8266Audio/pull/410
 
+      - Play an AAC             MQTT topic: "your_custom_mqtt_topic/aac"  (better for ESP32, hard for esp8266)
+                                MQTT load: http://url-to-the-aac-file/file.aac
+
       - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
                                 MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://22203.live.streamtheworld.com/WHTAFM.mp3
 
@@ -127,7 +130,7 @@
 //#define USE_EXTERNAL_DAC     // uncomment to use external I2S DAC 
 #define USE_INTERNAL_DAC     // uncomment to use the internal DAC of the ESP32 (not available on ESP8266)
 
-
+#include <SD.h> 
 #include "Arduino.h"
 #include "boot_sound.h"
 #ifdef ESP32
@@ -143,6 +146,9 @@
 #include "AudioGeneratorMP3.h"
 #include "AudioGeneratorWAV.h"
 #include "AudioGeneratorRTTTL.h"
+#include "AudioGeneratorAAC.h"
+#include <AudioGeneratorFLAC.h>
+
 #ifdef USE_NO_DAC
     #include "AudioOutputI2SNoDAC.h"
 #else
@@ -153,6 +159,8 @@
 #include <google-tts.h>
 
 AudioGeneratorMP3 *mp3 = NULL;
+AudioGeneratorAAC *aac = NULL;
+AudioGeneratorFLAC *flac = NULL;
 AudioGeneratorWAV *wav = NULL;
 AudioGeneratorRTTTL *rtttl = NULL;
 AudioFileSourceHTTPStream *file_http = NULL;
@@ -175,7 +183,7 @@ byte willQoS = 0;
 
 int counter = 0;
 // AudioRelated ---------------------------
-float volume_level = 0.7;
+float volume_level = 0.5;
 String playing_status;
 const int preallocateBufferSize = 4096;   // 4096 for ESP32 could be OK , 2048 for esp8266
 void *preallocateBuffer = NULL;
@@ -250,6 +258,8 @@ void mqttReconnect()
     if (mqttClient.connect(thingName.c_str(), mqttUserName, mqttUserPassword, mqttFullTopic(willTopic), willQoS, willRetain, willMessage))
     {
       mqttClient.subscribe(mqttFullTopic("play"));
+      mqttClient.subscribe(mqttFullTopic("aac"));
+      mqttClient.subscribe(mqttFullTopic("flac"));
       mqttClient.subscribe(mqttFullTopic("stream"));
       mqttClient.subscribe(mqttFullTopic("tone"));
       mqttClient.subscribe(mqttFullTopic("say"));
@@ -269,7 +279,7 @@ void mqttReconnect()
 }
 
 /* ############################### Audio ############################################ */
-    const char  RTTLsound[] PROGMEM = "5thSymph:d=16,o=5,b=130:g,g,g,4d#,4p,f,f,f,4d";
+    const char  RTTLsound[] PROGMEM = "5thSymph:d=16,o=5,b=160:g,g,g,4d#,4p,f,f,f,4d";
 void playBootSound()
 {
     file_progmem = new AudioFileSourcePROGMEM(boot_sound, sizeof(boot_sound));
@@ -294,6 +304,28 @@ void stopPlaying()
     mp3->stop();
     delete mp3;
     mp3 = NULL;
+  }
+  if (aac)
+  {
+#ifdef DEBUG_FLAG
+    Serial.print(F("...#"));
+    Serial.println(F("Interrupted!"));
+    Serial.println();
+#endif
+    aac->stop();
+    delete aac;
+    aac = NULL;
+  }
+  if (flac)
+  {
+#ifdef DEBUG_FLAG
+    Serial.print(F("...#"));
+    Serial.println(F("Interrupted!"));
+    Serial.println();
+#endif
+    flac->stop();
+    delete flac;
+    flac = NULL;
   }
   if (wav)
   {
@@ -331,8 +363,38 @@ void stopPlaying()
     delete file_icy;
     file_icy = NULL;
   }
+  
   broadcastStatus("status", "idle");
   updateLEDBrightness(100);
+}
+
+
+
+// Called when a metadata event occurs (i.e. an ID3 tag, an ICY block, etc.
+void MDCallback(void *cbData, const char *type, bool isUnicode, const char *string)
+{
+  const char *ptr = reinterpret_cast<const char *>(cbData);
+  (void) isUnicode; // Punt this ball for now
+  // Note that the type and string may be in PROGMEM, so copy them to RAM for printf
+  char s1[32], s2[64];
+  strncpy_P(s1, type, sizeof(s1));
+  s1[sizeof(s1)-1]=0;
+  strncpy_P(s2, string, sizeof(s2));
+  s2[sizeof(s2)-1]=0;
+  Serial.printf("METADATA(%s) '%s' = '%s'\n", ptr, s1, s2);
+  Serial.flush();
+}
+
+// Called when there's a warning or error (like a buffer underflow or decode hiccup)
+void StatusCallback(void *cbData, int code, const char *string)
+{
+  const char *ptr = reinterpret_cast<const char *>(cbData);
+  // Note that the string may be in PROGMEM, so copy it to RAM for printf
+  char s1[64];
+  strncpy_P(s1, string, sizeof(s1));
+  s1[sizeof(s1)-1]=0;
+  Serial.printf("STATUS(%s) '%d' = '%s'\n", ptr, code, s1);
+  Serial.flush();
 }
 
 /* ################################## MQTT ############################################### */
@@ -363,6 +425,50 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
         mp3->begin(buff, out);
+      }
+      else
+      {
+        stopPlaying();
+        broadcastStatus("status", "error");
+        broadcastStatus("status", "idle");
+      }
+    }
+
+
+    // got a new aac URL to play ------------------------------------------------
+    if (!strcmp(topic, mqttFullTopic("aac")))
+    {
+      stopPlaying();
+      file_http = new AudioFileSourceHTTPStream();
+      file_http->SetReconnect(3, 500);   // useful ?
+      if (file_http->open(newMsg))
+      {
+        broadcastStatus("status", "playing");
+        updateLEDBrightness(50); // dim while playing
+        buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
+        aac = new AudioGeneratorAAC();
+        aac->begin(buff, out);
+      }
+      else
+      {
+        stopPlaying();
+        broadcastStatus("status", "error");
+        broadcastStatus("status", "idle");
+      }
+    }
+
+    // got a new flac URL to play ------------------------------------------------
+    if (!strcmp(topic, mqttFullTopic("flac")))
+    {
+      stopPlaying();
+      file_http = new AudioFileSourceHTTPStream();
+      if (file_http->open(newMsg))
+      {
+        broadcastStatus("status", "playing");
+        updateLEDBrightness(50); // dim while playing
+        buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
+        flac = new AudioGeneratorFLAC();
+        flac->begin(buff, out);
       }
       else
       {
@@ -413,8 +519,10 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       broadcastStatus("status", "playing");
       //updateLEDBrightness(50);                      // dim while playing
       ESP8266SAM *sam = new ESP8266SAM;
+      sam->SetVoice(sam->SAMVoice::VOICE_STUFFY);   // Make your choice : VOICE_SAM, VOICE_ELF, VOICE_ROBOT, VOICE_STUFFY, VOICE_OLDLADY, VOICE_ET (from ESP8266SAM.h)
       sam->Say(out, newMsg);
-      stopPlaying();
+      //stopPlaying();
+      out->stop();  // necessary to avoid infinite repeat of the last syllab
       delete sam;
       broadcastStatus("status", "idle");
     }
@@ -424,19 +532,20 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
     {
       stopPlaying();
 
-      file_icy = new AudioFileSourceICYStream();
       TTS tts;
       String GoogleUrl = tts.getSpeechUrl(newMsg, "fr");  // here you can change the language of google TTS
-      GoogleUrl.replace("https://","http://"); // little trick to keep the library unmodified and avoid to manage certs. This could be better : https://github.com/earlephilhower/ESP8266Audio/pull/410
+      GoogleUrl.replace("https://","http://"); // little trick to keep the library unmodified and avoid to manage certs. 
+                                              //alternative : String http = "http" + url.substring(5);
+                                              //This could be better : https://github.com/earlephilhower/ESP8266Audio/pull/410
       Serial.println(GoogleUrl);
 
-      char buffer[GoogleUrl.length() + 1];
-      GoogleUrl.toCharArray(buffer, GoogleUrl.length() + 1);
-
-      if (file_icy->open(buffer))
+      // char buffer[GoogleUrl.length() + 1];
+      // GoogleUrl.toCharArray(buffer, GoogleUrl.length() + 1);
+      file_http = new AudioFileSourceHTTPStream();
+      if (file_http->open( (const char *)GoogleUrl.c_str()))
       {
         broadcastStatus("status", "playing");
-        buff = new AudioFileSourceBuffer(file_icy, preallocateBuffer, preallocateBufferSize);
+        buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
         mp3->begin(buff, out);
       }
@@ -447,6 +556,8 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         broadcastStatus("status", "idle");
       }
     }
+
+
 
     // got a volume request, expecting double [0.0,1.0] ---------------------
     if (!strcmp(topic, mqttFullTopic("volume")))
@@ -482,11 +593,13 @@ void wifiConnected()
   Serial.print(WiFi.localIP());
   Serial.println(F("]"));
 #endif
-  playBootSound();
+  
   mqttClient.setServer(mqttServer, port);
   mqttClient.setCallback(onMqttMessage);
   mqttClient.setBufferSize(MQTT_MSG_SIZE);
   mqttReconnect();
+
+  playBootSound();
 }
 
 boolean formValidator()
@@ -577,20 +690,46 @@ void loop()
 {
 
   iotWebConf.doLoop();
+  if (iotWebConf.getState() == IOTWEBCONF_STATE_ONLINE){
   mqttReconnect();
   mqttClient.loop();
+  }
   if (!mp3)
-    iotWebConf.doLoop(); // give processor priority to audio
+    iotWebConf.doLoop(); // give processor priority to web server
   if (mp3 && !mp3->loop())
     stopPlaying();
   if (wav && !wav->loop())
     stopPlaying();
   if (rtttl && !rtttl->loop())
     stopPlaying();
+  if (aac && !aac->loop())
+    stopPlaying();
+  if (flac && !flac->loop())
+    stopPlaying();
+
 
 #ifdef DEBUG_FLAG
 #ifdef ESP32
-
+  if (mp3 && mp3->isRunning())
+  {
+    static int unsigned long lastms = 0;
+    if (millis() - lastms > 1000)
+    {
+      lastms = millis();
+      Serial.print(F("Free: "));
+      Serial.print(ESP.getFreeHeap(), DEC);
+      Serial.print(F("  ("));
+      Serial.print(ESP.getFreeHeap() - ESP.getMaxAllocHeap(), DEC);   // heap_caps_get_largest_free_block() or getMaxAllocHeap() ?
+      Serial.print(F(" lost)"));
+      // Todo : calculate memory fragmentation on ESP32
+      // Serial.print(F("  Fragmentation: "));
+      // Serial.print(ESP.getHeapFragmentation(), DEC);
+      // Serial.print(F("%"));
+      // if (ESP.getHeapFragmentation() > 40)
+        Serial.print(F("  ----------- "));
+      Serial.println();
+    }
+  }
 #else
   if (mp3 && mp3->isRunning())
   {
