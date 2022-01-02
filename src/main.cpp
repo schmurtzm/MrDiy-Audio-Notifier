@@ -167,6 +167,7 @@ ______    _____   _____     ___    ___      __      __
 #endif
 #include "ESP8266SAM.h"
 #include "IotWebConf.h"
+#include "IotWebConfUsing.h"
 #include <google-tts.h>
 
 AudioGeneratorMP3 *mp3 = NULL;
@@ -217,10 +218,11 @@ char mqttTopic[MQTT_MSG_SIZE];
 DNSServer dnsServer;
 WebServer server(80);
 IotWebConf iotWebConf(thingName.c_str(), &dnsServer, &server, wifiInitialApPassword);
-IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", mqttServer, sizeof(mqttServer));
-IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT username", "mqttUser", mqttUserName, sizeof(mqttUserName));
-IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", mqttUserPassword, sizeof(mqttUserPassword), "password");
-IotWebConfParameter mqttTopicParam = IotWebConfParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
+iotwebconf::ParameterGroup mqttgroup = iotwebconf::ParameterGroup("mqttgroup", "");
+iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", mqttServer, sizeof(mqttServer));
+iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT username", "mqttUser", mqttUserName, sizeof(mqttUserName));
+iotwebconf::PasswordParameter mqttUserPasswordParam = iotwebconf::PasswordParameter("MQTT password", "mqttPass", mqttUserPassword, sizeof(mqttUserPassword), "password");
+iotwebconf::TextParameter mqttTopicParam = iotwebconf::TextParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
 
 //#define LED_Pin           5       // external LED pin
 
@@ -614,7 +616,7 @@ void wifiConnected()
   playBootSound();
 }
 
-boolean formValidator()
+boolean formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper)
 {
 
   boolean valid = true;
@@ -641,10 +643,11 @@ void setup()
   updateLEDBrightness(10);
 #endif
 
-  iotWebConf.addParameter(&mqttServerParam);
-  iotWebConf.addParameter(&mqttUserNameParam);
-  iotWebConf.addParameter(&mqttUserPasswordParam);
-  iotWebConf.addParameter(&mqttTopicParam);
+  mqttgroup.addItem(&mqttServerParam);
+  mqttgroup.addItem(&mqttUserNameParam);
+  mqttgroup.addItem(&mqttUserPasswordParam);
+  mqttgroup.addItem(&mqttTopicParam);
+  iotWebConf.addParameterGroup(&mqttgroup);
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
   iotWebConf.setFormValidator(&formValidator);
 #ifdef LED_Pin
@@ -702,7 +705,7 @@ void loop()
 {
 
   iotWebConf.doLoop();
-  if (iotWebConf.getState() == IOTWEBCONF_STATE_ONLINE){
+  if (iotWebConf.getState() == iotwebconf::OnLine){
   mqttReconnect();
   mqttClient.loop();
   }
