@@ -16,6 +16,8 @@
 /*    - added comments to change the SAMvoice (robot, elf , ET...)                    */
 /*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""          */
 /*      due to mqtt actions before wifi connects                                      */
+/*  V0.3 - 2022/01/03 :                                                               */
+/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                           */
 /*                                                                                    */
 /**************************************************************************************/
 
@@ -38,7 +40,7 @@
                               MQTT load: http://url-to-the-flac-file/file.flac
 
     - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
-                              MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://22203.live.streamtheworld.com/WHTAFM.mp3
+                              MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://us1.internet-radio.com:8321/stream
 
     - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
                               MQTT load: RTTTL formated text, example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
@@ -167,6 +169,7 @@ ______    _____   _____     ___    ___      __      __
 #endif
 #include "ESP8266SAM.h"
 #include "IotWebConf.h"
+#include "IotWebConfUsing.h"
 #include <google-tts.h>
 
 AudioGeneratorMP3 *mp3 = NULL;
@@ -217,10 +220,11 @@ char mqttTopic[MQTT_MSG_SIZE];
 DNSServer dnsServer;
 WebServer server(80);
 IotWebConf iotWebConf(thingName.c_str(), &dnsServer, &server, wifiInitialApPassword);
-IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", mqttServer, sizeof(mqttServer));
-IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT username", "mqttUser", mqttUserName, sizeof(mqttUserName));
-IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", mqttUserPassword, sizeof(mqttUserPassword), "password");
-IotWebConfParameter mqttTopicParam = IotWebConfParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
+iotwebconf::ParameterGroup mqttgroup = iotwebconf::ParameterGroup("mqttgroup", "");
+iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", mqttServer, sizeof(mqttServer));
+iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT username", "mqttUser", mqttUserName, sizeof(mqttUserName));
+iotwebconf::PasswordParameter mqttUserPasswordParam = iotwebconf::PasswordParameter("MQTT password", "mqttPass", mqttUserPassword, sizeof(mqttUserPassword), "password");
+iotwebconf::TextParameter mqttTopicParam = iotwebconf::TextParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
 
 //#define LED_Pin           5       // external LED pin
 
@@ -614,7 +618,7 @@ void wifiConnected()
   playBootSound();
 }
 
-boolean formValidator()
+boolean formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper)
 {
 
   boolean valid = true;
@@ -641,10 +645,11 @@ void setup()
   updateLEDBrightness(10);
 #endif
 
-  iotWebConf.addParameter(&mqttServerParam);
-  iotWebConf.addParameter(&mqttUserNameParam);
-  iotWebConf.addParameter(&mqttUserPasswordParam);
-  iotWebConf.addParameter(&mqttTopicParam);
+  mqttgroup.addItem(&mqttServerParam);
+  mqttgroup.addItem(&mqttUserNameParam);
+  mqttgroup.addItem(&mqttUserPasswordParam);
+  mqttgroup.addItem(&mqttTopicParam);
+  iotWebConf.addParameterGroup(&mqttgroup);
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
   iotWebConf.setFormValidator(&formValidator);
 #ifdef LED_Pin
@@ -702,7 +707,7 @@ void loop()
 {
 
   iotWebConf.doLoop();
-  if (iotWebConf.getState() == IOTWEBCONF_STATE_ONLINE){
+  if (iotWebConf.getState() == iotwebconf::OnLine){
   mqttReconnect();
   mqttClient.loop();
   }
