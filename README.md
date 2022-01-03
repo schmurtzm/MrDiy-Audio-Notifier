@@ -18,35 +18,35 @@
 
  MQTT COMMANDS:  ( 'your_custom_mqtt_topic' is the MQTT prefix defined during the setup)
 
-      - Play an MP3             MQTT topic: "your_custom_mqtt_topic/play"
-                                MQTT load: http://url-to-the-mp3-file/file.mp3
-                                PS: supports HTTP only, no HTTPS. -> this could be a solution :
-                                https://github.com/earlephilhower/ESP8266Audio/pull/410
+    - Play an MP3             MQTT topic: "your_custom_mqtt_topic/play"
+                              MQTT load: http://url-to-the-mp3-file/file.mp3
+                              PS: supports HTTP only, no HTTPS. -> this could be a solution :
+                              https://github.com/earlephilhower/ESP8266Audio/pull/410
 
-      - Play an AAC             MQTT topic: "your_custom_mqtt_topic/aac"  (better for ESP32, hard for esp8266)
-                                MQTT load: http://url-to-the-aac-file/file.aac
+    - Play an AAC             MQTT topic: "your_custom_mqtt_topic/aac" (OK on ESP32, hard on esp8266)
+                              MQTT load: http://url-to-the-aac-file/file.aac
 
-      - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
-                                MQTT load: http://url-to-the-icecast-stream/file.mp3
-                                example: http://22203.live.streamtheworld.com/WHTAFM.mp3
+    - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
+                              MQTT load: http://url-to-the-icecast-stream/file.mp3
+                              example: http://22203.live.streamtheworld.com/WHTAFM.mp3
 
-      - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
-                                MQTT load: RTTTL formated text
-                                example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
+    - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
+                              MQTT load: RTTTL formated text
+                              example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
 
-      - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
-                                MQTT load: Text to be read
-                                example: Hello There. How. Are. You?
+    - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
+                              MQTT load: Text to be read
+                              example: Hello There. How. Are. You?
 
-      - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
+    - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
 
-      - Change the Volume       MQTT topic: "your_custom_mqtt_topic/volume"
-                                MQTT load: a double between 0.00 and 1.00
-                                example: 0.7
+    - Change the Volume       MQTT topic: "your_custom_mqtt_topic/volume"
+                              MQTT load: a double between 0.00 and 1.00
+                              example: 0.7
 
-      - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
-                                MQTT load: Text to be read
-                                example: Hello There. How. Are. You?
+    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
+                              MQTT load: Text to be read
+                              example: Hello There. How. Are. You?
 
 
 
@@ -88,7 +88,7 @@ just to help filter out any voltage droop during high volume playback.
  
  
  
- ===============================================================================
+ ===========================================================================
  #  Original description from MrDIY 
  https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 

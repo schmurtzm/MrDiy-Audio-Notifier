@@ -16,6 +16,8 @@
 /*    - added comments to change the SAMvoice (robot, elf , ET...)                    */
 /*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""          */
 /*      due to mqtt actions before wifi connects                                      */
+/*  V0.3 - 2022/01/03 :                                                               */
+/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                           */
 /*                                                                                    */
 /**************************************************************************************/
 
@@ -38,7 +40,7 @@
                               MQTT load: http://url-to-the-flac-file/file.flac
 
     - Play an Icecast Stream  MQTT topic: "your_custom_mqtt_topic/stream"
-                              MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://22203.live.streamtheworld.com/WHTAFM.mp3
+                              MQTT load: http://url-to-the-icecast-stream/file.mp3, example: http://us1.internet-radio.com:8321/stream
 
     - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
                               MQTT load: RTTTL formated text, example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
