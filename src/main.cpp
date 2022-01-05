@@ -54,7 +54,8 @@
                               MQTT load: a double between 0.00 and 1.00, example: 0.7
 
     - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
-                              MQTT load: Text to be read, example: Hello There. How. Are. You?
+                              MQTT load: Text to be read,Language, example: Hello There. How. Are. You?  OR  Bonjour, comment allez vous?,fr-FR
+                              List of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
 
 
 

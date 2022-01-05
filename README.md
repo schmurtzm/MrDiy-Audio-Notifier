@@ -7,7 +7,7 @@
 - Ported to platformio (with differents recommanded settings for ESP8266audio)
 - Can be compiled for ESP8266 and ESP32
 - IotWebConf updated to version v3.x (thanks to Markvader)
-- Google Translate TTS (so a little less "cloudless" but multilingual and better voice than the included ESP8266SAM)
+- Google Translate TTS (multilingual and better voice quality than the local ESP8266SAM). [List of supported languages](https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js).
 - ability to play AAC (required for many web radio) and flac (not tested)
 - This code also allows to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
 - Documentation to connect your ESP to a speaker (see comments at the top of the "main.cpp" file)
@@ -46,9 +46,10 @@
                               example: 0.7
 
     - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
-                              MQTT load: Text to be read
-                              example: Hello There. How. Are. You?
-
+                              MQTT load: Text to be read,language   (English by default)
+                              example: Hello There. How are you?
+                                       Bonjour, comment allez vous?,fr-FR
+                              
 
 
  How to connect ESP to speaker :
