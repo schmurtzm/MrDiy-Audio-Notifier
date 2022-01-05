@@ -139,9 +139,9 @@ ______    _____   _____     ___    ___      __      __
 #define DEBUG_FLAG // uncomment to enable debug mode & Serial output
 
 // Please select one of these sound output options :
-//#define USE_NO_DAC           // uncomment to use no DAC, using software-simulated delta-sigma DAC
+#define USE_NO_DAC           // uncomment to use no DAC, using software-simulated delta-sigma DAC
 //#define USE_EXTERNAL_DAC     // uncomment to use external I2S DAC 
-#define USE_INTERNAL_DAC     // uncomment to use the internal DAC of the ESP32 (not available on ESP8266)
+//#define USE_INTERNAL_DAC     // uncomment to use the internal DAC of the ESP32 (not available on ESP8266)
 
 #include <SD.h> 
 #include "Arduino.h"
@@ -549,7 +549,43 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       stopPlaying();
 
       TTS tts;
-      String GoogleUrl = tts.getSpeechUrl(newMsg, "fr");  // here you can change the language of google TTS
+
+
+      
+      char SelectedLanguage[3] = "en";
+      if (newMsg[mlength-3] == ',')  // it seems that a language has been set...
+      {
+          SelectedLanguage[0] = newMsg[mlength-2] ; SelectedLanguage[1] = newMsg[mlength-1] ; 
+          // ---------  facultative part : check if the language is known by Google TTS, useful to have a warning when a wrong language is used
+          const char allowedLang[104][3] = { "af" , "sq" , "am" , "ar" , "hy" , "az" , "eu" , "be" , "bn" , "bs" , "bg" , "ca" , "zh" , "co" , "hr" ,
+          "cs" , "da" , "nl" , "en" , "eo" , "et" , "fi" , "fr" , "fy" , "gl" , "ka" , "de" , "el" , "gu" , "ht" , "ha" , "he" , "hi" , "hu" , "is" ,
+          "ig" , "id" , "ga" , "it" , "ja" , "jv" , "kn" , "kk" , "km" , "rw" , "ko" , "ku" , "ky" , "lo" , "lv" , "lt" , "lb" , "mk" , "mg" , "ms" ,
+          "ml" , "mt" , "mi" , "mr" , "mn" , "my" , "ne" , "no" , "ny" , "or" , "ps" , "fa" , "pl" , "pt" , "pa" , "ro" , "ru" , "sm" , "gd" , "sr" ,
+          "st" , "sn" , "sd" , "si" , "sk" , "sl" , "so" , "es" , "su" , "sw" , "sv" , "tl" , "tg" , "ta" , "tt" , "te" , "th" , "tr" , "tk" , "uk" ,
+          "ur" , "ug" , "uz" , "vi" , "cy" , "xh" , "yi" , "yo" , "zu" };   
+          // this list should be completed with other supported languages : https://cloud.google.com/translate/docs/languages
+          
+          bool KnownLanguage = false;
+          for (int i = 0; i < (sizeof(allowedLang) / 2) -1; i++) {
+              if (memcmp(SelectedLanguage, allowedLang[i], 2) == 0) KnownLanguage = true;  // checking if current language is contained in the list
+          }
+          if (KnownLanguage == true)
+          { 
+              newMsg[mlength-3] = 0; // now we remove the language part from the string 
+          }
+          else
+          {
+            Serial.println(F("Unknown language, en has been set by default"));
+            SelectedLanguage[0] = 'e'; SelectedLanguage[1] = 'n' ; 
+          }
+      } 
+       
+       
+       // ---------  
+
+
+
+      String GoogleUrl = tts.getSpeechUrl(newMsg, SelectedLanguage);  // here we change the language of google TTS
       GoogleUrl.replace("https://","http://"); // little trick to keep the library unmodified and avoid to manage certs. 
                                               //alternative : String http = "http" + url.substring(5);
                                               //This could be better : https://github.com/earlephilhower/ESP8266Audio/pull/410
