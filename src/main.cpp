@@ -550,42 +550,39 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
 
       TTS tts;
 
+      // ---------  facultative part : check if the language is known by Google TTS, useful to have a warning when a wrong language is used ---------
+      String StrnewMsg =  newMsg;
+      int index = StrnewMsg.lastIndexOf(',');
+      String SelectedLanguage = StrnewMsg.substring(index + 1);
 
+      const char allowedLang[67][6] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
+        "cs-CZ" , "da-DK" , "nl-NL" , "en-AU" , "en-GB" , "en-US" , "eo" , "et" , "fil-P" , "fi-FI" , "fr-FR" , "fr-CA" , "de-DE" , "el-GR" ,
+        "gu" , "hi-IN" , "hu-HU" , "is-IS" , "id-ID" , "it-IT" , "ja-JP" , "kn" , "km" , "ko-KR" , "la" , "lv" , "mk" , "ml" , "mr" , "ne" ,
+        "nb-NO" , "pl-PL" , "pt-BR" , "ro-RO" , "ru-RU" , "sr-RS" , "si" , "sk-SK" , "es-MX" , "es-ES" , "sw" , "sv-SE" , "ta" , "te" , "th-TH" ,
+        "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en"  };   
+         // source of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
       
-      char SelectedLanguage[3] = "en";
-      if (newMsg[mlength-3] == ',')  // it seems that a language has been set...
+      bool KnownLanguage = false;
+
+      for (int i = 0; i < (sizeof(allowedLang) / 5) -1; i++) {
+          if (strcmp(allowedLang[i],SelectedLanguage.c_str())==0)  KnownLanguage = true;  // checking if current language is contained in the list
+      }
+      if (KnownLanguage == true)
+      { 
+        StrnewMsg = StrnewMsg.substring(0, index);
+          newMsg[mlength-index] = 0; // now we remove the language part from the string 
+      }
+      else
       {
-          SelectedLanguage[0] = newMsg[mlength-2] ; SelectedLanguage[1] = newMsg[mlength-1] ; 
-          // ---------  facultative part : check if the language is known by Google TTS, useful to have a warning when a wrong language is used
-          const char allowedLang[104][3] = { "af" , "sq" , "am" , "ar" , "hy" , "az" , "eu" , "be" , "bn" , "bs" , "bg" , "ca" , "zh" , "co" , "hr" ,
-          "cs" , "da" , "nl" , "en" , "eo" , "et" , "fi" , "fr" , "fy" , "gl" , "ka" , "de" , "el" , "gu" , "ht" , "ha" , "he" , "hi" , "hu" , "is" ,
-          "ig" , "id" , "ga" , "it" , "ja" , "jv" , "kn" , "kk" , "km" , "rw" , "ko" , "ku" , "ky" , "lo" , "lv" , "lt" , "lb" , "mk" , "mg" , "ms" ,
-          "ml" , "mt" , "mi" , "mr" , "mn" , "my" , "ne" , "no" , "ny" , "or" , "ps" , "fa" , "pl" , "pt" , "pa" , "ro" , "ru" , "sm" , "gd" , "sr" ,
-          "st" , "sn" , "sd" , "si" , "sk" , "sl" , "so" , "es" , "su" , "sw" , "sv" , "tl" , "tg" , "ta" , "tt" , "te" , "th" , "tr" , "tk" , "uk" ,
-          "ur" , "ug" , "uz" , "vi" , "cy" , "xh" , "yi" , "yo" , "zu" };   
-          // this list should be completed with other supported languages : https://cloud.google.com/translate/docs/languages
-          
-          bool KnownLanguage = false;
-          for (int i = 0; i < (sizeof(allowedLang) / 2) -1; i++) {
-              if (memcmp(SelectedLanguage, allowedLang[i], 2) == 0) KnownLanguage = true;  // checking if current language is contained in the list
-          }
-          if (KnownLanguage == true)
-          { 
-              newMsg[mlength-3] = 0; // now we remove the language part from the string 
-          }
-          else
-          {
-            Serial.println(F("Unknown language, en has been set by default"));
-            SelectedLanguage[0] = 'e'; SelectedLanguage[1] = 'n' ; 
-          }
-      } 
-       
-       
-       // ---------  
+        Serial.println(F("Unknown language, en has been set by default"));
+        SelectedLanguage ="en";
+      }
+   
+       // ---------------------------------------------------------------------------------------------------------------------------------------
 
 
 
-      String GoogleUrl = tts.getSpeechUrl(newMsg, SelectedLanguage);  // here we change the language of google TTS
+      String GoogleUrl = tts.getSpeechUrl(StrnewMsg, SelectedLanguage);  // here we change the language of google TTS
       GoogleUrl.replace("https://","http://"); // little trick to keep the library unmodified and avoid to manage certs. 
                                               //alternative : String http = "http" + url.substring(5);
                                               //This could be better : https://github.com/earlephilhower/ESP8266Audio/pull/410
