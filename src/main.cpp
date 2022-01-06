@@ -107,7 +107,7 @@ ______    _____   _____    ____    ___
 |   audio pins    |  External DAC   | Internal DAC |       No DAC       |
 +-----------------+-----------------+--------------+--------------------+
 | DAC - LCK(LRC)  | GPIO25          | NA           | NA                 |
-| DAC - CK(BCLK)  | GPIO26          | NA           | NA                 |
+| DAC - BCK(BCLK) | GPIO26          | NA           | NA                 |
 | DAC - I2So(DIN) | GPIO22          | NA           | NA                 |
 | speaker L       | NA (on the DAC) | GPIO25       | GPIO22 (L&R mixed) |
 | speaker R       | NA (on the DAC) | GPIO26       | GPIO22 (L&R mixed) |
@@ -125,7 +125,7 @@ ______    _____   _____     ___    ___      __      __
 |   audio pins    |  External DAC   |         No DAC         |
 +-----------------+-----------------+------------------------+
 | DAC - LCK(LRC)  | GPIO2 (D4)      | NA                     |
-| DAC - CK(BCLK)  | GPIO15 (D8)     | NA                     |
+| DAC - BCK(BCLK) | GPIO15 (D8)     | NA                     |
 | DAC - I2So(DIN) | GPIO3 (RX)      | NA                     |
 | speaker L       | NA (on the DAC) | GPIO3 (RX) (L&R mixed) |
 | speaker R       | NA (on the DAC) | GPIO3 (RX) (L&R mixed) |
@@ -427,7 +427,7 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
     Serial.print(F("Requested ["));
     Serial.print(topic);
     Serial.print(F("] "));
-    Serial.println(newMsg);
+    Serial.println(newMsg);  // here we can see that that specifics alphabets like Cyrillic are not supported
 #endif
     // got a new URL to play ------------------------------------------------
     if (!strcmp(topic, mqttFullTopic("play")))
@@ -553,15 +553,17 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
 
       // ---------  facultative part : check if the language is known by Google TTS, useful to have a warning when a wrong language is used ---------
       String StrnewMsg =  newMsg;
+      //String StrnewMsg =  String((char *)payload);
       int index = StrnewMsg.lastIndexOf(',');
       String SelectedLanguage = StrnewMsg.substring(index + 1);
 
-      const char allowedLang[67][6] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
+      const char allowedLang[69][6] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
         "cs-CZ" , "da-DK" , "nl-NL" , "en-AU" , "en-GB" , "en-US" , "eo" , "et" , "fil-P" , "fi-FI" , "fr-FR" , "fr-CA" , "de-DE" , "el-GR" ,
         "gu" , "hi-IN" , "hu-HU" , "is-IS" , "id-ID" , "it-IT" , "ja-JP" , "kn" , "km" , "ko-KR" , "la" , "lv" , "mk" , "ml" , "mr" , "ne" ,
         "nb-NO" , "pl-PL" , "pt-BR" , "ro-RO" , "ru-RU" , "sr-RS" , "si" , "sk-SK" , "es-MX" , "es-ES" , "sw" , "sv-SE" , "ta" , "te" , "th-TH" ,
-        "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en"  };   
+        "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en" , "ja" , "ru"};   
          // source of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
+         // Could be converted into a dropdown list in web UI for more simplicity....
       
       bool KnownLanguage = false;
 
@@ -584,10 +586,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
 
 
       String GoogleUrl = tts.getSpeechUrl(StrnewMsg, SelectedLanguage);  // here we change the language of google TTS
+
       GoogleUrl.replace("https://","http://"); // little trick to keep the library unmodified and avoid to manage certs. 
                                               //alternative : String http = "http" + url.substring(5);
                                               //This could be better : https://github.com/earlephilhower/ESP8266Audio/pull/410
-      Serial.println(GoogleUrl);
+      #ifdef DEBUG_FLAG
+        Serial.println(GoogleUrl);
+      #endif
 
       // char buffer[GoogleUrl.length() + 1];
       // GoogleUrl.toCharArray(buffer, GoogleUrl.length() + 1);
@@ -710,10 +715,10 @@ void setup()
 #ifdef USE_INTERNAL_DAC
     out = new AudioOutputI2S(0, 1);  //use the internal DAC : channel 1 (gpio25) , channel 2 (gpio26) 
     Serial.println(F("Using the internal DAC of the ESP32 : \r\n speaker L -> GPIO25 \r\n speaker R -> GPIO26"));
-#elif USE_EXTERNAL_DAC
+#elif defined USE_EXTERNAL_DAC
     out = new AudioOutputI2S();
     #ifdef ESP32
-      Serial.println(F("Using I2S output on ESP32 : please connect your DAC to pins : ")));
+      Serial.println(F("Using I2S output on ESP32 : please connect your DAC to pins : "));
       Serial.println(F("LCK(LRC) -> GPIO25  \r\n BCK(BCLK) -> GPIO26 \r\n I2So(DIN) -> GPIO22"));
     #else    // we are on ESP8266
       Serial.println(F("Using I2S output on ESP8266 : please connect your DAC to pins : "));
