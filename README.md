@@ -69,13 +69,13 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
                               MQTT load: http://url-to-the-icecast-stream/file.mp3
                               example: http://22203.live.streamtheworld.com/WHTAFM.mp3
 
+    - Play a Flac             MQTT topic: "your_custom_mqtt_topic/flac"  
+                              (better for ESP32, hard for esp8266)
+                              MQTT load: http://url-to-the-flac-file/file.flac
+
     - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
                               MQTT load: RTTTL formated text
                               example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
-
-    - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
-                              MQTT load: Text to be read
-                              example: Hello There. How. Are. You?
 
     - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
 
@@ -83,8 +83,12 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
                               MQTT load: a double between 0.00 and 1.00
                               example: 0.7
 
-    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
-                              MQTT load: Text to be read,language   (English by default)
+    - Say Text                MQTT topic: "your_custom_mqtt_topic/samvoice"
+                              MQTT load: Text to be read
+                              example: Hello There. How. Are. You?
+
+    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/googlevoice"
+                              MQTT load: Text to be read,language  (language is facultative)
                               example: Hello There. How are you?
                                        Bonjour, comment allez vous?,fr-FR
                               
