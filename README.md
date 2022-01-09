@@ -9,9 +9,47 @@
 - IotWebConf updated to version v3.x (thanks to Markvader)
 - Google Translate TTS (multilingual and better voice quality than the local ESP8266SAM). [List of supported languages](https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js).
 - ability to play AAC (required for many web radio) and flac (not tested)
-- This code also allows to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
+- New settings in web interface allow to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
 - Documentation to connect your ESP to a speaker (see comments at the top of the "main.cpp" file)
 - You’ll also find some useful comments for wiring your DAC quickly or to improve the code (sound level of RTTTS, ssl, IotWebConf migration to v3.x...).
+- ...
+
+```
+/*  Release Notes (yyyy/mm/dd):                                                             */
+/*  V0.1 - 2021/12/22 :                                                                     */
+/*    - Added these comments, pinouts and additionnal DAC settings                          */
+/*    - Now compatible with platformio                                                      */
+/*    - Now compatible wih ESP32                                                            */
+/*    - Added support for Google Translate TTS                                              */
+/*  V0.2 - 2021/12/29 :                                                                     */
+/*    - fix playing RTTTL & SAM                                                             */
+/*    - added aac playback, useful for many radios                                          */
+/*    - added flac playback (working?)                                                      */
+/*    - added comments to change the SAMvoice (robot, elf , ET...)                          */
+/*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""                */
+/*      due to mqtt actions before wifi connects                                            */
+/*  V0.3 - 2022/01/03 :                                                                     */
+/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                                 */
+/*  V0.4 - 2022/01/08 :                                                                     */
+/*    - NEW: You can set these options directly in web interface                            */
+/*      (These settings are saved & restored after a reboot)                                */
+/*           * audio output (no DAC, internal or external DAC), reboot required             */
+/*           * audio volume                                                                 */
+/*           * default TTS sam voice style can be set in web interface                      */
+/*           * default TTS google voice language can be set in web interface                */
+/*    - NEW: Firmware update with web interface                                             */
+/*    - NEW: MQTT command feedback msg when a problems are detected (topic "answer")        */
+/*    - FIX : longer MQTT server name are supported                                         */
+/*    - Breaking change : MQTT TTS commands renamed: samvoice /googlevoice                  */
+/*    - Less different firmwares + Schmurtz_ESP_Flasher : Windows script for easy flashing  */
+```
+
+ How to flash :
+ ----
+Precompiled firmwares are available for ESP8266 (Wemos D1 Mini) and ESP32 (esp32doit-devkit-v4).
+To flash it, plug your ESP in USB port, download this full repo and then run _Schmurtz_ESP_Flasher\Schmurtz_ESP_Flasher.bat (Windows only).
+
+
 
  How to use :
  ----
@@ -81,8 +119,8 @@ just to help filter out any voltage droop during high volume playback.
 
  Some issues for now :
  ----
- - Playing GoogleTTS crash at end (for both ESP8266 and ESP32) : [issue #395 resolved](https://github.com/earlephilhower/ESP8266Audio/issues/395)
- - <strike>Playing RTTTL (nokia tone) never stop playing the last note (ESP32 only) :</strike> [issue #327](https://github.com/earlephilhower/ESP8266Audio/issues/327)
+ - Playing GoogleTTS hang the ESP at end of playing (for both ESP8266 and ESP32) : [issue #395](https://github.com/earlephilhower/ESP8266Audio/issues/395)
+ - <strike>Playing RTTTL (nokia tone) never stop playing the last note (ESP32 only) :</strike> [issue #327 resolved](https://github.com/earlephilhower/ESP8266Audio/issues/327)
  
  These issues are related to [ESP8266audio library](https://github.com/earlephilhower/ESP8266Audio) so it has been created on their repo ;)
  
@@ -92,6 +130,9 @@ just to help filter out any voltage droop during high volume playback.
  
  ===========================================================================
  #  Original description from MrDIY 
+ 
+ (some functionalities are now outdated but it gives a good overview)
+ 
  https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 
 In this project, I will show you how you can use an ESP8266 module or board like the Wemos D1 Mini to play MP3, TTS and RTTTL. It is controlled over MQTT. You will be able to send it an MQTT message with the URL of the MP3 file and it will play it for it. It is also capable to doing basic TTS and playback RTTTL (aka Nokia) ringtone.
@@ -103,10 +144,9 @@ In this project, I will show you how you can use an ESP8266 module or board like
 
 ## Instructions
 
-Please visit <a href="https://www.instructables.com/id/MQTT-Audio-Notifier-for-ESP8266-Play-MP3-TTS-RTTL">my Instructables page</a> page for full instructions or watch the video above.
+Please visit <a href="https://www.instructables.com/id/MQTT-Audio-Notifier-for-ESP8266-Play-MP3-TTS-RTTL">Mr DIY Instructables page</a> page for full instructions or watch the video above.
 
-<p>Don't forget to check out <a href="https://www.youtube.com/channel/UCtfYdcn8F8wfRA2BXp2FPtg">my YouTube channel</a>  and follow me on <a href="https://twitter.com/MrDIYca">Twitter</a>. If you are intersted in supporting my work, please visit <a href="https://www.patreon.com/MrDIYca?fan_landing=true">my Patreon page</a>.</p>
-
+<p>Check out <a href="https://www.youtube.com/channel/UCtfYdcn8F8wfRA2BXp2FPtg">Mr DIY YouTube channel</a>  and follow Mr DIY on <a href="https://twitter.com/MrDIYca">Twitter</a>.
 
 ## Thanks
 Many thanks to all the authors and contributors to the open source libraries I have used. You have done an amazing job for the community!

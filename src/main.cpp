@@ -1,29 +1,41 @@
-/**************************************************************************************/
-/*  "MrDiy Audio Notifier"                                                            */
-/*  Credits to original source : https://gitlab.com/MrDIYca/mrdiy-audio-notifier      */
-/*  Modified by Schmurtz for Platformio and ESP32 :                                   */
-/*                                                                                    */
-/*  Release Notes (yyyy/mm/dd):                                                       */
-/*  V0.1 - 2021/12/22 :                                                               */
-/*    - Added these comments, pinouts and additionnal DAC settings                    */
-/*    - Now compatible with platformio                                                */
-/*    - Now compatible wih ESP32                                                      */
-/*    - Added support for Google Translate TTS                                        */
-/*  V0.2 - 2021/12/29 :                                                               */
-/*    - fix playing RTTTL & SAM                                                       */
-/*    - added aac playback, useful for many radios                                    */
-/*    - added flac playback (working?)                                                */
-/*    - added comments to change the SAMvoice (robot, elf , ET...)                    */
-/*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""          */
-/*      due to mqtt actions before wifi connects                                      */
-/*  V0.3 - 2022/01/03 :                                                               */
-/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                           */
-/*                                                                                    */
-/**************************************************************************************/
+/********************************************************************************************/
+/*  "MrDiy Audio Notifier"                                                                  */
+/*  Credits to original source : https://gitlab.com/MrDIYca/mrdiy-audio-notifier            */
+/*  Modified by Schmurtz for Platformio and ESP32 :                                         */
+/*                                                                                          */
+/*  Release Notes (yyyy/mm/dd):                                                             */
+/*  V0.1 - 2021/12/22 :                                                                     */
+/*    - Added these comments, pinouts and additionnal DAC settings                          */
+/*    - Now compatible with platformio                                                      */
+/*    - Now compatible wih ESP32                                                            */
+/*    - Added support for Google Translate TTS                                              */
+/*  V0.2 - 2021/12/29 :                                                                     */
+/*    - fix playing RTTTL & SAM                                                             */
+/*    - added aac playback, useful for many radios                                          */
+/*    - added flac playback (working?)                                                      */
+/*    - added comments to change the SAMvoice (robot, elf , ET...)                          */
+/*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""                */
+/*      due to mqtt actions before wifi connects                                            */
+/*  V0.3 - 2022/01/03 :                                                                     */
+/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                                 */
+/*  V0.4 - 2022/01/08 :                                                                     */
+/*    - NEW: You can set these options directly in web interface                            */
+/*      (These settings are saved & restored after a reboot)                                */
+/*           * audio output (no DAC, internal or external DAC), reboot required             */
+/*           * audio volume                                                                 */
+/*           * default TTS sam voice style can be set in web interface                      */
+/*           * default TTS google voice language can be set in web interface                */
+/*    - NEW: Firmware update with web interface                                             */
+/*    - NEW: MQTT command feedback msg when a problems are detected (topic "answer")        */
+/*    - FIX : longer MQTT server name are supported                                         */
+/*    - Breaking change : MQTT TTS commands renamed: samvoice /googlevoice                  */
+/*    - Less different firmwares + Schmurtz_ESP_Flasher : Windows script for easy flashing  */
+/*                                                                                          */
+/********************************************************************************************/
 
 /* ============================================================================================================
 
-  MrDIY Audio Notifier is a cloud-free media notifier that can play MP3s, stream icecast radios, read text
+  MrDIY Audio Notifier is a cloud-free media notifier that can play MP3s, aac, stream icecast radios, read text
   and play RTTTL ringtones. It is controller over MQTT.
 
 
@@ -45,15 +57,15 @@
     - Play a Ringtone         MQTT topic: "your_custom_mqtt_topic/tone"
                               MQTT load: RTTTL formated text, example: Soap:d=8,o=5,b=125:g,a,c6,p,a,4c6,4p,a,g,e,c,4p,4g,a
 
-    - Say Text                MQTT topic: "your_custom_mqtt_topic/say"
-                              MQTT load: Text to be read, example: Hello There. How. Are. You?
-
     - Stop Playing            MQTT topic: "your_custom_mqtt_topic/stop"
 
     - Change the Volume       MQTT topic: "your_custom_mqtt_topic/volume"
                               MQTT load: a double between 0.00 and 1.00, example: 0.7
 
-    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/tts"
+    - Say Text                MQTT topic: "your_custom_mqtt_topic/samvoice"
+                              MQTT load: Text to be read, example: Hello There. How. Are. You?
+
+    - Say Text with Google    MQTT topic: "your_custom_mqtt_topic/googlevoice"
                               MQTT load: Text to be read,Language, example: Hello There. How. Are. You?  OR  Bonjour, comment allez vous?,fr-FR
                               List of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
 
@@ -136,13 +148,14 @@ ______    _____   _____     ___    ___      __      __
 
 ============================================================================================================== */
 
-
 #define DEBUG_FLAG // uncomment to enable debug mode & Serial output
 
+// ---------- obsolete part , will be deleted ----------
 // Please select one of these sound output options :
-#define USE_NO_DAC           // uncomment to use no DAC, using software-simulated delta-sigma DAC
+//#define USE_NO_DAC           // uncomment to use no DAC, using software-simulated delta-sigma DAC
 //#define USE_EXTERNAL_DAC     // uncomment to use external I2S DAC 
 //#define USE_INTERNAL_DAC     // uncomment to use the internal DAC of the ESP32 (not available on ESP8266)
+// ------------------------------------------------------
 
 #include <SD.h> 
 #include "Arduino.h"
@@ -163,14 +176,22 @@ ______    _____   _____     ___    ___      __      __
 #include "AudioGeneratorAAC.h"
 #include <AudioGeneratorFLAC.h>
 
-#ifdef USE_NO_DAC
+// #ifdef USE_NO_DAC
     #include "AudioOutputI2SNoDAC.h"
-#else
+// #else
     #include "AudioOutputI2S.h"
-#endif
+// #endif
 #include "ESP8266SAM.h"
 #include "IotWebConf.h"
 #include "IotWebConfUsing.h"
+
+// UpdateServer includes
+#ifdef ESP8266
+  # include <ESP8266HTTPUpdateServer.h>
+#elif defined(ESP32)
+# include <IotWebConfESP32HTTPUpdateServer.h>   // For ESP32 IotWebConf provides a drop-in replacement for UpdateServer.
+#endif
+
 #include <google-tts.h>
 
 AudioGeneratorMP3 *mp3 = NULL;
@@ -182,11 +203,11 @@ AudioFileSourceHTTPStream *file_http = NULL;
 AudioFileSourcePROGMEM *file_progmem = NULL;
 AudioFileSourceICYStream *file_icy = NULL;
 AudioFileSourceBuffer *buff = NULL;
-#ifdef USE_NO_DAC
-AudioOutputI2SNoDAC     *out = NULL;
-#else
+// #ifdef USE_NO_DAC
+AudioOutputI2SNoDAC     *outNoDac = NULL;
+// #else
 AudioOutputI2S          *out = NULL;
-#endif
+// #endif
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 #define port 1883
@@ -198,7 +219,7 @@ byte willQoS = 0;
 
 int counter = 0;
 // AudioRelated ---------------------------
-float volume_level = 0.5;
+
 String playing_status;
 const int preallocateBufferSize = 4096;   // 4096 for ESP32 could be OK , 2048 for esp8266
 void *preallocateBuffer = NULL;
@@ -211,21 +232,59 @@ String ChipId = String((uint32_t)ESP.getEfuseMac(), HEX);
 #endif
 String thingName = String("MrDIY Notifier - ") + ChipId;
 const char wifiInitialApPassword[] = "mrdiy.ca";
-char mqttServer[16];
+char mqttServer[64];
 char mqttUserName[32];
 char mqttUserPassword[32];
 char mqttTopicPrefix[32];
 char mqttTopic[MQTT_MSG_SIZE];
 
 
+#define STRING_LEN 14
+#define NUMBER_LEN 4
+// -- Callback methods.
+void configSaved();
+bool formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper);
+char checkboxParamValue[STRING_LEN];
+char soundOutputValue[STRING_LEN];
+char floatsoundVolume[4];
+char samVoiceValue[8];
+char GoogleTTSvoice[6];
+
+#ifdef ESP8266
+  static char chooserValues[][STRING_LEN] = { "NoDAC" , "EXTERNAL_DAC" };
+  static char chooserNames[][STRING_LEN] = { "No DAC" , "External DAC" };
+#elif ESP32
+  static char chooserValues[][STRING_LEN] = { "INTERNAL_DAC", "EXTERNAL_DAC", "NoDAC" };
+  static char chooserNames[][STRING_LEN] = { "Internal DAC", "External DAC", "No DAC" };
+#endif
+
+  static char samVoiceValues[][8] = { "STUFFY" , "SAM", "ELF", "ROBOT",  "OLDLADY", "ET" };
+  static char samVoiceNames[][8] = { "STUFFY" , "SAM", "ELF", "ROBOT",  "OLDLADY", "ET" };
+
 DNSServer dnsServer;
 WebServer server(80);
+#ifdef ESP8266
+ESP8266HTTPUpdateServer httpUpdater;
+#elif defined(ESP32)
+HTTPUpdateServer httpUpdater;
+#endif
+
+
+
 IotWebConf iotWebConf(thingName.c_str(), &dnsServer, &server, wifiInitialApPassword);
-iotwebconf::ParameterGroup mqttgroup = iotwebconf::ParameterGroup("mqttgroup", "");
+iotwebconf::ParameterGroup mqttgroup = iotwebconf::ParameterGroup("mqttgroup", "MQTT parameters");
 iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", mqttServer, sizeof(mqttServer));
 iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT username", "mqttUser", mqttUserName, sizeof(mqttUserName));
 iotwebconf::PasswordParameter mqttUserPasswordParam = iotwebconf::PasswordParameter("MQTT password", "mqttPass", mqttUserPassword, sizeof(mqttUserPassword), "password");
-iotwebconf::TextParameter mqttTopicParam = iotwebconf::TextParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
+iotwebconf::TextParameter mqttTopicParam = iotwebconf::TextParameter("MQTT Topic", "mqttTopic (without ""/"" at the end)", mqttTopicPrefix, sizeof(mqttTopicPrefix));
+
+iotwebconf::ParameterGroup soundgroup = iotwebconf::ParameterGroup("soundgroup", "Sound parameters");
+iotwebconf::SelectParameter soundOutput = IotWebConfSelectParameter("Sound output :", "Sound_output", soundOutputValue, STRING_LEN, (char*)chooserValues, (char*)chooserNames, sizeof(chooserValues) / STRING_LEN, STRING_LEN);
+// iotwebconf::TextParameter soundVolume = IotWebConfTextParameter("String param", "stringParam", soundVolume, STRING_LEN);
+iotwebconf::NumberParameter soundVolume = IotWebConfNumberParameter("Sound Volume (0 - 1.0)", "Sound_Volume", floatsoundVolume, NUMBER_LEN,  "0.5", "e.g. 0.7", "min='0' max='1' step='0.1'");
+iotwebconf::SelectParameter samVoice = IotWebConfSelectParameter("samVoice", "samVoice :", samVoiceValue, 8, (char*)samVoiceValues, (char*)samVoiceNames, sizeof(samVoiceValues) / 8, 8);
+iotwebconf::TextParameter GoogleTTSvoiceParam = iotwebconf::TextParameter("Google TTS Voice (<a href=""https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js"" target=""_blank"">list</a>)", "GoogleTTSvoice", GoogleTTSvoice, sizeof(GoogleTTSvoice));
+
 
 //#define LED_Pin           5       // external LED pin
 
@@ -250,7 +309,7 @@ void broadcastStatus(const char topic[], String msg)
     Serial.print(mqttTopicPrefix);
     Serial.print(F("/"));
     Serial.print(topic);
-    Serial.print(F("\t\t"));
+    Serial.print(F("\t"));
     Serial.println(msg);
 #endif
   }
@@ -278,15 +337,15 @@ void mqttReconnect()
       mqttClient.subscribe(mqttFullTopic("flac"));
       mqttClient.subscribe(mqttFullTopic("stream"));
       mqttClient.subscribe(mqttFullTopic("tone"));
-      mqttClient.subscribe(mqttFullTopic("say"));
+      mqttClient.subscribe(mqttFullTopic("samvoice"));
       mqttClient.subscribe(mqttFullTopic("stop"));
       mqttClient.subscribe(mqttFullTopic("volume"));
-      mqttClient.subscribe(mqttFullTopic("tts"));
+      mqttClient.subscribe(mqttFullTopic("googlevoice"));
 #ifdef DEBUG_FLAG
       Serial.println(F("Connected to MQTT"));
 #endif
       broadcastStatus("LWT", "online");
-      broadcastStatus("ThingName", thingName.c_str());
+      broadcastStatus("SSID", thingName.c_str());
       broadcastStatus("IPAddress", WiFi.localIP().toString());
       broadcastStatus("status", "idle");
       updateLEDBrightness(100);
@@ -295,12 +354,18 @@ void mqttReconnect()
 }
 
 /* ############################### Audio ############################################ */
-    const char  RTTLsound[] PROGMEM = "5thSymph:d=16,o=5,b=160:g,g,g,4d#,4p,f,f,f,4d";
+const char  RTTLsound[] PROGMEM = "5thSymph:d=16,o=5,b=160:g,g,g,4d#,4p,f,f,f,4d";
 void playBootSound()
 {
     file_progmem = new AudioFileSourcePROGMEM(boot_sound, sizeof(boot_sound));
     wav = new AudioGeneratorWAV();
-    wav->begin(file_progmem, out);
+    if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0  || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+    {
+        wav->begin(file_progmem, out);
+    }else{
+        wav->begin(file_progmem, outNoDac);
+    }
+    
 
     //  ===== a simpler boot sound : ===== (But little bug with ESP32 for now)
     // file_progmem = new AudioFileSourcePROGMEM(RTTLsound, strlen_P(RTTLsound));
@@ -413,6 +478,45 @@ void StatusCallback(void *cbData, int code, const char *string)
   Serial.flush();
 }
 
+void SetVolume(char MQTTMsg[MQTT_MSG_SIZE], bool toSave)
+{
+  const char errorMsg[] = "Wrong value (not a number) : Volume must be a number between 0.0 and 1.0 !";
+    bool isnumeric = true;
+    for (int i = 0; i < sizeof(MQTTMsg)/sizeof(MQTTMsg[0]); i++) {
+      if (isdigit(MQTTMsg[i]) == 0 && MQTTMsg[i] != '.' && MQTTMsg[i] != '\0')  {  // We check each char of the array , must be a part of a number (or empty)
+          isnumeric = false;
+          
+      }
+     }
+     if (isnumeric == true){
+          float volume_level;
+          volume_level = atof(MQTTMsg);
+          if (volume_level >= 0.0 && volume_level <= 1.0)
+          {
+              if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+              {
+                  out->SetGain(volume_level);
+              }else{
+                  outNoDac->SetGain(volume_level);
+              }
+              // we record the current volume to restore it on the next boot thanks to IotWebConf library
+              dtostrf(volume_level,1,1, floatsoundVolume);   // convert float to char array ,1 character minimum, 1 digit 
+              if (toSave) iotWebConf.saveConfig();
+          }
+          else
+          {
+              Serial.print(errorMsg);
+              broadcastStatus("anwser", errorMsg);
+          }
+       }
+       else  //not a numeric value 
+       {
+          Serial.print(errorMsg);
+          broadcastStatus("anwser", errorMsg);
+       }
+}
+
+
 /* ################################## MQTT ############################################### */
 
 void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
@@ -440,7 +544,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         updateLEDBrightness(50); // dim while playing
         buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
-        mp3->begin(buff, out);
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            mp3->begin(buff, out);
+        }else{
+            mp3->begin(buff, outNoDac);
+        }
+        
       }
       else
       {
@@ -463,7 +573,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         updateLEDBrightness(50); // dim while playing
         buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         aac = new AudioGeneratorAAC();
-        aac->begin(buff, out);
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            aac->begin(buff, out);
+        }else{
+            aac->begin(buff, outNoDac);
+        }
+        
       }
       else
       {
@@ -484,7 +600,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         updateLEDBrightness(50); // dim while playing
         buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         flac = new AudioGeneratorFLAC();
-        flac->begin(buff, out);
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            flac->begin(buff, out);
+        }else{
+            flac->begin(buff, outNoDac);
+        }
+        
       }
       else
       {
@@ -505,7 +627,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         updateLEDBrightness(50); // dim while playing
         buff = new AudioFileSourceBuffer(file_icy, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
-        mp3->begin(buff, out);
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            mp3->begin(buff, out);
+        }else{
+            mp3->begin(buff, outNoDac);
+        }
+        
       }
       else
       {
@@ -523,64 +651,108 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       updateLEDBrightness(50); // dim while playing
       file_progmem = new AudioFileSourcePROGMEM(newMsg, sizeof(newMsg));
       rtttl = new AudioGeneratorRTTTL();
-      rtttl->begin(file_progmem, out);
+      if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+      {
+          rtttl->begin(file_progmem, out);
+      }else{
+          rtttl->begin(file_progmem, outNoDac);
+      }
+      
       broadcastStatus("status", "idle");
       // an idea from the great project ESParkle to adjust the volume difference between mp3 and RTTTL : https://github.com/CosmicMac/ESParkle#settings
     }
 
     //got a TTS request ----------------------------------------------------
-    if (!strcmp(topic, mqttFullTopic("say")))
+    if (!strcmp(topic, mqttFullTopic("samvoice")))
     {
       stopPlaying();
       broadcastStatus("status", "playing");
       //updateLEDBrightness(50);                      // dim while playing
       ESP8266SAM *sam = new ESP8266SAM;
-      sam->SetVoice(sam->SAMVoice::VOICE_STUFFY);   // Make your choice : VOICE_SAM, VOICE_ELF, VOICE_ROBOT, VOICE_STUFFY, VOICE_OLDLADY, VOICE_ET (from ESP8266SAM.h)
-      sam->Say(out, newMsg);
+         // Make your choice : VOICE_SAM, VOICE_ELF, VOICE_ROBOT, VOICE_STUFFY, VOICE_OLDLADY, VOICE_ET (from ESP8266SAM.h)
+
+      if (strcmp(samVoiceValue,"STUFFY") == 0) sam->SetVoice(sam->SAMVoice::VOICE_STUFFY);
+      if (strcmp(samVoiceValue,"SAM") == 0) sam->SetVoice(sam->SAMVoice::VOICE_SAM);
+      if (strcmp(samVoiceValue,"ELF") == 0) sam->SetVoice(sam->SAMVoice::VOICE_ELF);
+      if (strcmp(samVoiceValue,"ROBOT") == 0) sam->SetVoice(sam->SAMVoice::VOICE_ROBOT);
+      if (strcmp(samVoiceValue,"OLDLADY") == 0) sam->SetVoice(sam->SAMVoice::VOICE_OLDLADY);
+      if (strcmp(samVoiceValue,"ET") == 0) sam->SetVoice(sam->SAMVoice::VOICE_ET);
+
+Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
+      if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+      {
+          sam->Say(out, newMsg);
+                  Serial.print("---------- >");   
+        Serial.print(soundOutputValue);
+        Serial.println("--------"); 
+        
+      }else{
+          sam->Say(outNoDac, newMsg);
+                  Serial.print("--+++++++++++ >");   
+        Serial.print(soundOutputValue);
+            Serial.println("--------"); 
+      }
+      
+      
       //stopPlaying();
-      out->stop();  // necessary to avoid infinite repeat of the last syllab
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            out->stop();  // necessary to avoid infinite repeat of the last syllab
+        }else{
+            outNoDac->stop();  // necessary to avoid infinite repeat of the last syllab
+        }
+      //out->stop();  // necessary to avoid infinite repeat of the last syllab
       delete sam;
       broadcastStatus("status", "idle");
     }
 
     //got a Google TTS request ----------------------------------------------------
     // Todo / idea : test if Google TTS if avaible, if not use SAM TTS instead
-    if (!strcmp(topic, mqttFullTopic("tts")))
+    if (!strcmp(topic, mqttFullTopic("googlevoice")))
     {
+
+      const int LANGMAXLENGTH = 6; 
       stopPlaying();
 
       TTS tts;
 
       // ---------  facultative part : check if the language is known by Google TTS, useful to have a warning when a wrong language is used ---------
       String StrnewMsg =  newMsg;
-      //String StrnewMsg =  String((char *)payload);
-      int index = StrnewMsg.lastIndexOf(',');
-      String SelectedLanguage = StrnewMsg.substring(index + 1);
-
-      const char allowedLang[69][6] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
+      String SelectedLanguage;
+      bool KnownLanguage = false;
+      const char allowedLang[68][LANGMAXLENGTH] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
         "cs-CZ" , "da-DK" , "nl-NL" , "en-AU" , "en-GB" , "en-US" , "eo" , "et" , "fil-P" , "fi-FI" , "fr-FR" , "fr-CA" , "de-DE" , "el-GR" ,
         "gu" , "hi-IN" , "hu-HU" , "is-IS" , "id-ID" , "it-IT" , "ja-JP" , "kn" , "km" , "ko-KR" , "la" , "lv" , "mk" , "ml" , "mr" , "ne" ,
         "nb-NO" , "pl-PL" , "pt-BR" , "ro-RO" , "ru-RU" , "sr-RS" , "si" , "sk-SK" , "es-MX" , "es-ES" , "sw" , "sv-SE" , "ta" , "te" , "th-TH" ,
         "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en" , "ja" , "ru"};   
          // source of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
          // Could be converted into a dropdown list in web UI for more simplicity....
-      
-      bool KnownLanguage = false;
 
-      for (int i = 0; i < (sizeof(allowedLang) / 5) -1; i++) {
-          if (strcmp(allowedLang[i],SelectedLanguage.c_str())==0)  KnownLanguage = true;  // checking if current language is contained in the list
-      }
-      if (KnownLanguage == true)
-      { 
-        StrnewMsg = StrnewMsg.substring(0, index);
-          newMsg[mlength-index] = 0; // now we remove the language part from the string 
-      }
-      else
-      {
-        Serial.println(F("Unknown language, en has been set by default"));
-        SelectedLanguage ="en";
-      }
-   
+        //String StrnewMsg =  String((char *)payload);
+        int index = StrnewMsg.lastIndexOf(',');   // take position of the last ","
+        if (index < LANGMAXLENGTH)     // it could be a language parameter, let's check if it exists in the list...
+        {
+            SelectedLanguage = StrnewMsg.substring(index + 1);   // a new string which contains what's after the last ","
+
+            for (int i = 0; i < (sizeof(allowedLang) / sizeof(allowedLang[1])) -1; i++) 
+            {
+                if (strcmp(allowedLang[i],SelectedLanguage.c_str())==0)  KnownLanguage = true;  // checking if current language is contained in the list
+            }
+
+            if (KnownLanguage == true)
+            { 
+              StrnewMsg = StrnewMsg.substring(0, index);
+              newMsg[mlength-index] = 0; // now we remove the language part from the string 
+            }
+        }
+
+         if (KnownLanguage == false)
+                  {
+              char errorMsg[96] = "No language recogniszed in this command, voice configured in settings will be used : ";
+              strcat(errorMsg,GoogleTTSvoice);
+              broadcastStatus("anwser", errorMsg);
+              SelectedLanguage = GoogleTTSvoice;
+            }
        // ---------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -602,7 +774,13 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         broadcastStatus("status", "playing");
         buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
-        mp3->begin(buff, out);
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            mp3->begin(buff, out);
+        }else{
+            mp3->begin(buff, outNoDac);
+        }
+        
       }
       else
       {
@@ -614,15 +792,10 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
 
 
 
-    // got a volume request, expecting double [0.0,1.0] ---------------------
+    // got a volume request, expecting double [0.0 - 1.0] ---------------------
     if (!strcmp(topic, mqttFullTopic("volume")))
     {
-      volume_level = atof(newMsg);
-      if (volume_level < 0.0)
-        volume_level = 0;
-      if (volume_level > 1.0)
-        volume_level = 0.7;
-      out->SetGain(volume_level);
+      SetVolume(newMsg, true);
     }
 
     // got a stop request  --------------------------------------------------
@@ -664,12 +837,30 @@ boolean formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper)
   int l = server.arg(mqttServerParam.getId()).length();
   if (l == 0)
   {
-    mqttServerParam.errorMessage = "Please provide an MQTT server";
+    mqttServerParam.errorMessage = "Please provide an MQTT server"; 
     valid = false;
   }
   return valid;
 }
 
+void configSaved()
+{
+  Serial.println("Configuration was updated.");
+  Serial.println(samVoiceValue);
+  Serial.println(floatsoundVolume);
+  SetVolume(floatsoundVolume,false);
+  
+
+  // could be a way to resume changes in MQTT , or we could use something like this : iotWebConf.getSystemParameterGroup()->debugTo(&Serial);
+
+  // char myConcatenation[120];
+  // strcpy(myConcatenation, "Volume level : ");
+  // strcat(myConcatenation,floatsoundVolume);
+  // strcat(myConcatenation,"\n");
+  // Serial.println(myConcatenation);
+  // broadcastStatus("anwser", myConcatenation);
+  
+}
 
 /* ################################## Setup ############################################# */
 void setup()
@@ -688,14 +879,34 @@ void setup()
   mqttgroup.addItem(&mqttUserNameParam);
   mqttgroup.addItem(&mqttUserPasswordParam);
   mqttgroup.addItem(&mqttTopicParam);
+
+  soundgroup.addItem(&soundOutput);
+  soundgroup.addItem(&soundVolume);
+  soundgroup.addItem(&samVoice);
+  soundgroup.addItem(&GoogleTTSvoiceParam);
+  
+  
+
+  
+  
+
   iotWebConf.addParameterGroup(&mqttgroup);
+  iotWebConf.addParameterGroup(&soundgroup);
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
   iotWebConf.setFormValidator(&formValidator);
+  iotWebConf.setConfigSavedCallback(&configSaved); //callback IotWebConf
+  iotWebConf.getThingNameParameter()->label = "AP SSID"; // rename the SSID field in web interface "Thing name" -> "SSID"
 #ifdef LED_Pin
   iotWebConf.setStatusPin(LED_Pin);
 #endif
   iotWebConf.skipApStartup();
 
+  // -- Define how to handle updateServer calls.
+  iotWebConf.setupUpdateServer(
+    [](const char* updatePath) { httpUpdater.setup(&server, updatePath); },
+    [](const char* userName, char* password) { httpUpdater.updateCredentials(userName, password); });
+
+  
   boolean validConfig = iotWebConf.init();
   if (!validConfig)
   {
@@ -710,13 +921,18 @@ void setup()
                     { iotWebConf.handleNotFound(); });
 
 
+Serial.println(soundOutputValue);
 
-
-#ifdef USE_INTERNAL_DAC
+if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0) 
+{
     out = new AudioOutputI2S(0, 1);  //use the internal DAC : channel 1 (gpio25) , channel 2 (gpio26) 
+    out->SetGain(atof(floatsoundVolume));
     Serial.println(F("Using the internal DAC of the ESP32 : \r\n speaker L -> GPIO25 \r\n speaker R -> GPIO26"));
-#elif defined USE_EXTERNAL_DAC
+}
+else if (strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+{
     out = new AudioOutputI2S();
+    out->SetGain(atof(floatsoundVolume));
     #ifdef ESP32
       Serial.println(F("Using I2S output on ESP32 : please connect your DAC to pins : "));
       Serial.println(F("LCK(LRC) -> GPIO25  \r\n BCK(BCLK) -> GPIO26 \r\n I2So(DIN) -> GPIO22"));
@@ -724,17 +940,18 @@ void setup()
       Serial.println(F("Using I2S output on ESP8266 : please connect your DAC to pins : "));
       Serial.println(F("LCK(LRC) -> GPIO2 (D4) \r\n BCK(BCLK) -> GPIO15 (D8) \r\n I2So(DIN) -> GPIO3 (RX)"));
     #endif    // end of #ifdef ESP32
-#else  // we don't use DAC, using software-simulated delta-sigma DAC
-    out = new AudioOutputI2SNoDAC();
+}else{     // we don't use DAC, using software-simulated delta-sigma DAC
+    
+    outNoDac = new AudioOutputI2SNoDAC();
+    outNoDac->SetGain(atof(floatsoundVolume));
     #ifdef ESP32
       Serial.println(F("Using No DAC output on ESP32, audio output on pins \r\n speaker L & R -> GPIO22"));
     #else
       Serial.println(F("Using No DAC output on ESP8266, audio output on pins \r\n speaker L & R -> GPIO3 (RX)"));
     #endif
       Serial.println(F("Don't try and drive the speaker pins can't give enough current to drive even a headphone well and you may end up damaging your device"));
-#endif
-
-  out->SetGain(volume_level);
+}
+ 
   // out->SetRate(22050);//44100
   // out->SetOversampling(64);
   playBootSound();
