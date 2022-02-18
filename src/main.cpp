@@ -220,6 +220,31 @@ byte willQoS = 0;
 int counter = 0;
 // AudioRelated ---------------------------
 
+// ============== declarations for buttons : ==============
+typedef struct
+{
+  byte ButtonGpio = 255;        // 255 means that this button is not initialized
+  bool CurrentGPIOstate = 1;    // Digital state of the pin (High or LOW)
+  bool PreviousGPIOState = 1;   // Previous digital state of the pin (High or LOW)
+  unsigned long time = 0;       // Used to record the time since when the button has been pressed
+  bool BoundarySwitcher = 0;    // this boolean is used to debounce the button and avoid repetitions
+  byte CurrentButtonstate = 0;  // Current state of the button :
+  //                                0 : nothing , 1 = short press begins , 2 = short press released , 3 = long press begins
+  //                                4 = long press released , 5 = extra long press begins , 6 = extra long press released , 7 = currently pushed
+} button;
+
+button ButtonsDatas[2];
+const int DEBOUNCE_TIME = 150;      // debounce time = minimal time between 2 clicks (in ms)
+const int DOUBLE_PRESS = 500;       // maximum time between 2 press to obtain a double press event
+const int LONG_PRESS = 1500;        // time to press a button to trigger a long press action
+const int EXTRA_LONG_PRESS = 3000;  // time to press a button to trigger an extra long press action
+bool DblePressActionDone = 0;       // used to debouche simulataneous dual press
+
+const int BTN_VOL_LOWER = 13;
+const int BTN_VOL_LOUDER = 14;
+
+// ============ End of declarations for buttons : ============
+
 String playing_status;
 const int preallocateBufferSize = 4096;   // 4096 for ESP32 could be OK , 2048 for esp8266
 void *preallocateBuffer = NULL;
@@ -230,7 +255,7 @@ String ChipId = String(ESP.getChipId(), HEX);
 #elif ESP32
 String ChipId = String((uint32_t)ESP.getEfuseMac(), HEX);
 #endif
-String thingName = String("MrDIY Notifier - ") + ChipId;
+String thingName = String("MrDIYNotifier");    //+ ChipId; // this will allow to use DNS name easier
 const char wifiInitialApPassword[] = "mrdiy.ca";
 char mqttServer[64];
 char mqttUserName[32];
@@ -480,40 +505,50 @@ void StatusCallback(void *cbData, int code, const char *string)
 
 void SetVolume(char MQTTMsg[MQTT_MSG_SIZE], bool toSave)
 {
-  const char errorMsg[] = "Wrong value (not a number) : Volume must be a number between 0.0 and 1.0 !";
+
+
+    const char errorMsg[] = "Wrong value (not a number) : Volume must be a number between 0.0 and 1.0 !";
     bool isnumeric = true;
+    float volume_level;
+    
+
+
     for (int i = 0; i < sizeof(MQTTMsg)/sizeof(MQTTMsg[0]); i++) {
       if (isdigit(MQTTMsg[i]) == 0 && MQTTMsg[i] != '.' && MQTTMsg[i] != '\0')  {  // We check each char of the array , must be a part of a number (or empty)
           isnumeric = false;
-          
       }
      }
-     if (isnumeric == true){
-          float volume_level;
-          volume_level = atof(MQTTMsg);
-          if (volume_level >= 0.0 && volume_level <= 1.0)
-          {
-              if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
-              {
-                  out->SetGain(volume_level);
-              }else{
-                  outNoDac->SetGain(volume_level);
-              }
-              // we record the current volume to restore it on the next boot thanks to IotWebConf library
-              dtostrf(volume_level,1,1, floatsoundVolume);   // convert float to char array ,1 character minimum, 1 digit 
-              if (toSave) iotWebConf.saveConfig();
-          }
-          else
-          {
-              Serial.print(errorMsg);
-              broadcastStatus("anwser", errorMsg);
-          }
-       }
-       else  //not a numeric value 
-       {
-          Serial.print(errorMsg);
-          broadcastStatus("anwser", errorMsg);
-       }
+
+    if (isnumeric == true) 
+    {
+      volume_level = atof(MQTTMsg);
+    }else{
+        volume_level = atof(floatsoundVolume);
+         if  (MQTTMsg[0] == '-') volume_level = volume_level - 0.1;
+         if  (MQTTMsg[0] == '+') volume_level = volume_level + 0.1;
+    }
+
+    if (volume_level >= 0.0 && volume_level <= 1.0 )  //
+    {
+        if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
+        {
+            out->SetGain(volume_level);
+        }else{
+            outNoDac->SetGain(volume_level);
+        }
+
+        // we record the current volume to restore it on the next boot thanks to IotWebConf library
+        dtostrf(volume_level,1,1, floatsoundVolume);   // convert float to char array ,1 character minimum, 1 digit
+        Serial.print(F("Volume set to : "));
+        Serial.println(floatsoundVolume);
+        if (toSave) iotWebConf.saveConfig();
+    }
+    else
+    {
+        Serial.println(errorMsg);
+        broadcastStatus("anwser", errorMsg);
+    }
+
 }
 
 
@@ -806,6 +841,134 @@ Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
   }
 }
 
+
+
+
+/* ###################################### Physical Buttons ########################################### */
+
+void ButtonManager()
+{
+
+  for (int i = 0; i < sizeof ButtonsDatas / sizeof ButtonsDatas[0]; i++)   // for each button in ButtonsDatas
+  {
+    if (ButtonsDatas[i].ButtonGpio < 255)       // if a gpio has been defined
+    {
+
+      ButtonsDatas[i].CurrentGPIOstate = digitalRead(ButtonsDatas[i].ButtonGpio);               // we update the GPIO state
+
+
+      // ==================================================== Case where we have just had a change of state : button pushed =====================================================
+
+
+      if (ButtonsDatas[i].CurrentGPIOstate == LOW && ButtonsDatas[i].PreviousGPIOState == HIGH) //
+      {
+
+        if (millis() - ButtonsDatas[i].time < DEBOUNCE_TIME)  // if during the moment the button is pressed the time of pressing is less than ...
+        {
+          ButtonsDatas[i].CurrentGPIOstate = HIGH;  // we cancel the action to debounce
+          ButtonsDatas[i].CurrentButtonstate = 0;
+
+        }
+        else if (millis() - ButtonsDatas[i].time < DOUBLE_PRESS )
+        {
+          ButtonsDatas[i].time = millis(); // We start counting the time from the moment the button is pressed
+          ButtonsDatas[i].CurrentButtonstate = 8;  // like explained above: 1 = short press begins
+        }
+        else
+        {
+          ButtonsDatas[i].time = millis(); // We start counting the time from the moment the button is pressed
+          ButtonsDatas[i].CurrentButtonstate = 1;  // like explained above: 1 = short press begins
+        }
+      }
+
+
+      // ================================================================== Case where the button remains pressed ==================================================================
+
+
+      if (ButtonsDatas[i].CurrentGPIOstate == LOW && ButtonsDatas[i].PreviousGPIOState == LOW)
+      {
+
+        if (millis() - ButtonsDatas[i].time <= LONG_PRESS)  // if during the moment the button is pressed the time of pressing is less than ...
+        {
+          ButtonsDatas[i].CurrentButtonstate = 7;   // necessary if we want to detect the button only one time when it is pressed
+        }
+
+
+        if (millis() - ButtonsDatas[i].time > LONG_PRESS && millis() - ButtonsDatas[i].time < EXTRA_LONG_PRESS) // if during the moment the button is pressed the time of pressing is more than ...
+        {
+          if (ButtonsDatas[i].BoundarySwitcher == 0) // on the next boundary we will check if it is = to 1
+          {
+            ButtonsDatas[i].BoundarySwitcher = 1;    // so it allow to execute that only one time...
+            ButtonsDatas[i].CurrentButtonstate = 3;
+          }
+          else
+          {
+            ButtonsDatas[i].CurrentButtonstate = 7;   // necessary if we want to detect the button only one time when it is pressed
+          }
+        }
+
+
+        if (millis() - ButtonsDatas[i].time >= EXTRA_LONG_PRESS) // si durant le moment ou le bouton est appuyé le temps d'appui est sup à ...
+        {
+          if (ButtonsDatas[i].BoundarySwitcher == 1) // on the next boundary we will check if it is = to 0
+          {
+            ButtonsDatas[i].BoundarySwitcher = 0;    // so it allow to execute that only one time...
+            ButtonsDatas[i].CurrentButtonstate = 5;
+          }
+          else
+          {
+            ButtonsDatas[i].CurrentButtonstate = 7;   // necessary if we want to detect the button only one time when it is pressed
+          }
+        }
+      }
+
+
+      // ================================================================== In case the button has just been released ==================================================================
+
+
+      if (ButtonsDatas[i].CurrentGPIOstate == HIGH && ButtonsDatas[i].PreviousGPIOState == LOW)
+      {
+
+        if (millis() - ButtonsDatas[i].time <= LONG_PRESS)
+        {
+          ButtonsDatas[i].CurrentButtonstate = 2;
+        }
+
+
+        if (millis() - ButtonsDatas[i].time > LONG_PRESS && millis() - ButtonsDatas[i].time < EXTRA_LONG_PRESS) // if during the moment the button is pressed the time of pressing is between LONG_PRESS and EXTRA_LONG_PRESS ...
+        {
+          ButtonsDatas[i].CurrentButtonstate = 4;
+        }
+
+
+        if (millis() - ButtonsDatas[i].time >= EXTRA_LONG_PRESS)            // if during the moment the button is pressed the time of pressing is more than EXTRA_LONG_PRESS ...
+        {
+          ButtonsDatas[i].CurrentButtonstate = 6;
+        }
+
+        ButtonsDatas[i].time = millis();   // To debounce the next push
+      }
+
+
+      // ============================================================================= In case nothing happens =============================================================================
+
+
+
+      if (ButtonsDatas[i].CurrentGPIOstate == HIGH && ButtonsDatas[i].PreviousGPIOState == HIGH)
+      {
+        ButtonsDatas[i].BoundarySwitcher = 0;
+        ButtonsDatas[i].CurrentButtonstate = 0;
+      }
+      // ===================================================================================================================================================================================
+
+
+      ButtonsDatas[i].PreviousGPIOState = ButtonsDatas[i].CurrentGPIOstate;
+    }
+  }
+}
+
+
+
 /* ############################ WifiManager ############################################# */
 
 void wifiConnected()
@@ -885,10 +1048,6 @@ void setup()
   soundgroup.addItem(&samVoice);
   soundgroup.addItem(&GoogleTTSvoiceParam);
   
-  
-
-  
-  
 
   iotWebConf.addParameterGroup(&mqttgroup);
   iotWebConf.addParameterGroup(&soundgroup);
@@ -951,6 +1110,19 @@ else if (strcmp(soundOutputValue,"EXTERNAL_DAC") == 0)
     #endif
       Serial.println(F("Don't try and drive the speaker pins can't give enough current to drive even a headphone well and you may end up damaging your device"));
 }
+
+//we manage some buttons :
+  pinMode(BTN_VOL_LOWER, INPUT_PULLUP);
+  pinMode(BTN_VOL_LOUDER, INPUT_PULLUP);
+  ButtonsDatas[0].ButtonGpio = BTN_VOL_LOWER;
+  ButtonsDatas[1].ButtonGpio = BTN_VOL_LOUDER;
+
+
+  
+
+
+  // attachInterrupt(digitalPinToInterrupt(BTN_VOL_LOWER), manageVolLowerPinInterrupt, CHANGE);
+  // attachInterrupt(digitalPinToInterrupt(BTN_VOL_LOUDER), manageVolLouderPinInterrupt, CHANGE);
  
   // out->SetRate(22050);//44100
   // out->SetOversampling(64);
@@ -1025,4 +1197,11 @@ void loop()
   }
 #endif
 #endif
+
+ButtonManager(); // we refresh buttons status
+
+// now we manage volume with simple click or double click with buttons :
+if (ButtonsDatas[0].CurrentButtonstate == 1 || ButtonsDatas[0].CurrentButtonstate == 8) SetVolume("-",false); 
+if (ButtonsDatas[1].CurrentButtonstate == 1 || ButtonsDatas[1].CurrentButtonstate == 8) SetVolume("+",false);
+
 }
