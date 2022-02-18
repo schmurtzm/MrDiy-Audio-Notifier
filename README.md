@@ -50,6 +50,7 @@
  How to flash :
  ----
 Precompiled firmwares are available for ESP8266 (Wemos D1 Mini) and ESP32 (esp32doit-devkit-v4).
+
 To flash it, plug your ESP in USB port, download this full repo and then run _Schmurtz_ESP_Flasher\Schmurtz_ESP_Flasher.bat (Windows only).
 
 
@@ -92,12 +93,15 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
     - Stop Playing              MQTT topic: "your_mqtt_topic/stop"
 
     - Set the Volume            MQTT topic: "your_mqtt_topic/volume"
+                                MQTT load: a double between 0.00 and 1.00
+                                example: 0.7
+								
+    - increase/decrease Volume  MQTT topic: "your_mqtt_topic/volume"
                                 MQTT load: + ou -
                                 example: +  -> will increase volume of 0.1
 							  
-    - increase/decrease Volume  MQTT topic: "your_mqtt_topic/volume"
-                                MQTT load: a double between 0.00 and 1.00
-                                example: 0.7
+
+								
     - Say Text                  MQTT topic: "your_mqtt_topic/samvoice"
                                 MQTT load: Text to be read
                                 example: Hello There. How. Are. You?
