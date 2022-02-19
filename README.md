@@ -99,8 +99,6 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
     - increase/decrease Volume  MQTT topic: "your_mqtt_topic/volume"
                                 MQTT load: + ou -
                                 example: +  -> will increase volume of 0.1
-							  
-
 								
     - Say Text                  MQTT topic: "your_mqtt_topic/samvoice"
                                 MQTT load: Text to be read
@@ -109,9 +107,9 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
     - Say Text with Google      MQTT topic: "your_mqtt_topic/googlevoice"
                                 MQTT load: Text to be read,language  (language is facultative)
                                 example: Hello There. How are you?
-                                       Bonjour, comment allez vous?,fr-FR
+                                         Bonjour, comment allez vous?,fr-FR
                               
-for additionnal details, check the comments at the beginning of the "main.cpp".
+For additionnal details, check the comments at the beginning of the "main.cpp".
 
  How to connect ESP to speaker :
  ----
@@ -136,11 +134,10 @@ ESP8266-I2SOUT (Rx) -----/\/\/\--+  |      \ R|
                                     |       +-|
 USB 5V -----------------------------+
 
-You may also want to add a 220uF cap from USB5V to GND 
-just to help filter out any voltage droop during high volume playback.
+You may also want to add a 220uF cap from USB 5V to GND just to help filter out any voltage droop during high volume playback.
 ```
 
- Some issues for now :
+ Known issues :
  ----
  - Playing GoogleTTS hang the ESP at end of playing (for both ESP8266 and ESP32) : [issue #395](https://github.com/earlephilhower/ESP8266Audio/issues/395)
  - <strike>Playing RTTTL (nokia tone) never stop playing the last note (ESP32 only) :</strike> [issue #327 resolved](https://github.com/earlephilhower/ESP8266Audio/issues/327)
@@ -154,7 +151,7 @@ just to help filter out any voltage droop during high volume playback.
  ===========================================================================
  #  Original description from MrDIY 
  
- (some functionalities are now outdated but it gives a good overview)
+ (some functionalities exposed of the original project are now outdated but it gives a good overview).
  
  https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 

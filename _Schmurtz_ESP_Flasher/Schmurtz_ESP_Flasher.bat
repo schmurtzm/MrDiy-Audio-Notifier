@@ -28,7 +28,13 @@ echo Do not use this if you have another ESP device connected (it could flash th
 set com=auto
 pause
 )
-if not "%com%"=="" set ComCmd=--port COM%com%
+
+if "%com%"=="auto" (
+	set ComCmd=
+) ELSE (
+	set ComCmd=--port COM%com%
+)
+
 
 
 :Menu
