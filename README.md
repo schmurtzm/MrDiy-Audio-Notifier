@@ -56,7 +56,10 @@ MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of th
 /*    - NEW: increase and decrease volume with MQTT commands                                */
 /*    - NEW: increase and decrease volume physical buttons on GPIO                          */
 /*  V0.6 - 2022/02/22 :                                                                     */
-/*    - FIX: Google TTS : a lot better, almost no hang 		                            */
+/*    - FIX: Google TTS : a lot better, almost no hang                                      */
+/*  V0.61- 2022/02/22 :                                                                     */
+/*    - FIX: SAMVOICE TTS on ESP8266                                                        */
+/*    - FIX: Restore generated unique name for MQTT                                         */
 ```
 
  How to flash :

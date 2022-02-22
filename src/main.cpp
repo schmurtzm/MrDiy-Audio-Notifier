@@ -255,7 +255,7 @@ String ChipId = String(ESP.getChipId(), HEX);
 #elif ESP32
 String ChipId = String((uint32_t)ESP.getEfuseMac(), HEX);
 #endif
-String thingName = String("MrDIYNotifier");    //+ ChipId; // this will allow to use DNS name easier
+String thingName = String("MrDIYNotifier-"+ ChipId);
 const char wifiInitialApPassword[] = "mrdiy.ca";
 char mqttServer[64];
 char mqttUserName[32];
@@ -308,7 +308,7 @@ iotwebconf::SelectParameter soundOutput = IotWebConfSelectParameter("Sound outpu
 // iotwebconf::TextParameter soundVolume = IotWebConfTextParameter("String param", "stringParam", soundVolume, STRING_LEN);
 iotwebconf::NumberParameter soundVolume = IotWebConfNumberParameter("Sound Volume (0 - 1.0)", "Sound_Volume", floatsoundVolume, NUMBER_LEN,  "0.5", "e.g. 0.7", "min='0' max='1' step='0.1'");
 iotwebconf::SelectParameter samVoice = IotWebConfSelectParameter("samVoice", "samVoice :", samVoiceValue, 8, (char*)samVoiceValues, (char*)samVoiceNames, sizeof(samVoiceValues) / 8, 8);
-iotwebconf::TextParameter GoogleTTSvoiceParam = iotwebconf::TextParameter("Google TTS Voice (<a href=""https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js"" target=""_blank"">list</a>)", "GoogleTTSvoice", GoogleTTSvoice, sizeof(GoogleTTSvoice));
+iotwebconf::TextParameter GoogleTTSvoiceParam = iotwebconf::TextParameter("Google TTS Voice code (<a href=""https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js"" target=""_blank"">list</a>)", "GoogleTTSvoice", GoogleTTSvoice, sizeof(GoogleTTSvoice));
 
 
 //#define LED_Pin           5       // external LED pin
@@ -713,7 +713,7 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       if (strcmp(samVoiceValue,"OLDLADY") == 0) sam->SetVoice(sam->SAMVoice::VOICE_OLDLADY);
       if (strcmp(samVoiceValue,"ET") == 0) sam->SetVoice(sam->SAMVoice::VOICE_ET);
 
-Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
+
       if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
       {
         sam->Say(out, newMsg);
@@ -761,10 +761,6 @@ Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
 
         //String StrnewMsg =  String((char *)payload);
         int index = StrnewMsg.lastIndexOf(',');   // take position of the last ","
-        Serial.println(__LINE__);
-        Serial.println(index);
-        Serial.println(StrnewMsg.length() );
-        Serial.println(StrnewMsg.length() -  index);
         if ( StrnewMsg.length() -  index <= LANGMAXLENGTH)     // it could be a language parameter, let's check if it exists in the list...
         {
             SelectedLanguage = StrnewMsg.substring(index + 1);   // a new string which contains what's after the last ","
@@ -1055,7 +1051,8 @@ void setup()
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
   iotWebConf.setFormValidator(&formValidator);
   iotWebConf.setConfigSavedCallback(&configSaved); //callback IotWebConf
-  iotWebConf.getThingNameParameter()->label = "AP SSID"; // rename the SSID field in web interface "Thing name" -> "SSID"
+  iotWebConf.getThingNameParameter()->label = "Name (for AP,MQTT,DNS)"; // rename the SSID field in web interface "Thing name" -> "SSID"
+  iotWebConf.getApPasswordParameter()->label = "Password (for AP and web UI)";
 #ifdef LED_Pin
   iotWebConf.setStatusPin(LED_Pin);
 #endif
