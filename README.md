@@ -77,8 +77,9 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
  Once connected open web browser and go to http://192.168.4.1 , you will able to configure your wifi parameters, mqtt parameters here and sound parameters (internal DAC, external DAC or no DAC).
  The "AP password" must be changed (8 characters minimum), keep it in mind, it will be usefull to access to the web interface later.
  
- Once connected to your wifi, to go back to configuration opne this url in your favorite browser : http://MrDIYNotifier.local
+ Once connected to your wifi, to go back to configuration use this url in your favorite browser : http://MrDIYNotifier-idxxx.local   
  The login is "admin" and the password is the "AP password" that you have defined during wifi configuration.
+ The precise way in which the wifi works is discribe in the [IotWebConf library readme](https://github.com/prampec/IotWebConf#use-cases).
 
  
 
