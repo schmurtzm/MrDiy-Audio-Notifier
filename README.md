@@ -1,15 +1,25 @@
 # MrDiy Audio Notifier - Schmurtz Edition
  ----
   MrDiy Audio Notifier is an audio player controlled by MQTT.
+  
+  It is able to :
+- play local TTS (samvoice)
+- play Google Translate TTS
+- play MP3, AAC and FLAC
+- play RTTTL (Nokia ringtones)
+- play some web radio
 
-  MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of the MrDiy's code with some modifications :
+
+MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of the MrDiy's code with some modifications :
 
 - Ported to platformio (with differents recommanded settings for ESP8266audio)
 - Can be compiled for ESP8266 and ESP32
 - IotWebConf updated to version v3.x (thanks to Markvader)
 - Google Translate TTS (multilingual and better voice quality than the local ESP8266SAM). [List of supported languages](https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js).
-- ability to play AAC (required for many web radio) and flac (not tested)
+- Set voice style of samvoice
+- Ability to play AAC (required for many web radio) and flac (not tested)
 - New settings in web interface allow to switch easily between no DAC (version used by mr DIY) , external DAC or internal DAC (for ESP32).
+- Set volume with physical buttons
 - Documentation to connect your ESP to a speaker (see comments at the top of the "main.cpp" file)
 - You’ll also find some useful comments for wiring your DAC quickly or to improve the code (sound level of RTTTS, ssl, IotWebConf migration to v3.x...).
 - ...
@@ -39,12 +49,14 @@
 /*           * default TTS google voice language can be set in web interface                */
 /*    - NEW: Firmware update with web interface                                             */
 /*    - NEW: MQTT command feedback msg when a problems are detected (topic "answer")        */
-/*    - FIX : longer MQTT server name are supported                                         */
+/*    - FIX: longer MQTT server name are supported                                          */
 /*    - Breaking change : MQTT TTS commands renamed: samvoice /googlevoice                  */
 /*    - Less different firmwares + Schmurtz_ESP_Flasher : Windows script for easy flashing  */
 /*  V0.5 - 2022/02/18 :                                                                     */
 /*    - NEW: increase and decrease volume with MQTT commands                                */
 /*    - NEW: increase and decrease volume physical buttons on GPIO                          */
+/*  V0.6 - 2022/02/22 :                                                                     */
+/*    - FIX: Google TTS : a lot better, almost no hang 		                            */
 ```
 
  How to flash :
@@ -80,7 +92,7 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
 
     - Play an Icecast Stream    MQTT topic: "your_mqtt_topic/stream"
                                 MQTT load: http://url-to-the-icecast-stream/file.mp3
-                                example: http://22203.live.streamtheworld.com/WHTAFM.mp3
+                                example: http://icecast.radiofrance.fr/fiprock-midfi.mp3
 
     - Play a Flac               MQTT topic: "your_mqtt_topic/flac"  
                                 (better for ESP32, hard for esp8266)
@@ -139,13 +151,18 @@ You may also want to add a 220uF cap from USB 5V to GND just to help filter out 
 
  Known issues :
  ----
- - Playing GoogleTTS hang the ESP at end of playing (for both ESP8266 and ESP32) : [issue #395](https://github.com/earlephilhower/ESP8266Audio/issues/395)
+ - Playing GoogleTTS hang the ESP at end of playing (for both ESP8266 and ESP32) : [issue #395](https://github.com/earlephilhower/ESP8266Audio/issues/395)  (almost resolved)
  - <strike>Playing RTTTL (nokia tone) never stop playing the last note (ESP32 only) :</strike> [issue #327 resolved](https://github.com/earlephilhower/ESP8266Audio/issues/327)
  
  These issues are related to [ESP8266audio library](https://github.com/earlephilhower/ESP8266Audio) so it has been created on their repo ;)
  
  
  
+  Use with Home Assistant :
+ ----
+ It is possible to use MrDiy Notifier as a media player entity.
+ See my post on community forum for it :
+ https://community.home-assistant.io/t/turn-an-esp8266-wemosd1mini-into-an-audio-notifier-for-home-assistant-play-mp3-tts-rttl/211499/130?u=schmurtz
  
  
  ===========================================================================

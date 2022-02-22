@@ -716,16 +716,12 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
 Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
       if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
       {
-          sam->Say(out, newMsg);
-                  Serial.print("---------- >");   
+        sam->Say(out, newMsg);
         Serial.print(soundOutputValue);
-        Serial.println("--------"); 
         
       }else{
-          sam->Say(outNoDac, newMsg);
-                  Serial.print("--+++++++++++ >");   
+        sam->Say(outNoDac, newMsg); 
         Serial.print(soundOutputValue);
-            Serial.println("--------"); 
       }
       
       
@@ -765,10 +761,14 @@ Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
 
         //String StrnewMsg =  String((char *)payload);
         int index = StrnewMsg.lastIndexOf(',');   // take position of the last ","
-        if (index < LANGMAXLENGTH)     // it could be a language parameter, let's check if it exists in the list...
+        Serial.println(__LINE__);
+        Serial.println(index);
+        Serial.println(StrnewMsg.length() );
+        Serial.println(StrnewMsg.length() -  index);
+        if ( StrnewMsg.length() -  index <= LANGMAXLENGTH)     // it could be a language parameter, let's check if it exists in the list...
         {
             SelectedLanguage = StrnewMsg.substring(index + 1);   // a new string which contains what's after the last ","
-
+            Serial.println(SelectedLanguage);
             for (int i = 0; i < (sizeof(allowedLang) / sizeof(allowedLang[1])) -1; i++) 
             {
                 if (strcmp(allowedLang[i],SelectedLanguage.c_str())==0)  KnownLanguage = true;  // checking if current language is contained in the list
@@ -803,11 +803,12 @@ Serial.println(strcmp(soundOutputValue,"INTERNAL_DAC"));
 
       // char buffer[GoogleUrl.length() + 1];
       // GoogleUrl.toCharArray(buffer, GoogleUrl.length() + 1);
-      file_http = new AudioFileSourceHTTPStream();
-      if (file_http->open( (const char *)GoogleUrl.c_str()))
+      file_icy = new AudioFileSourceICYStream();
+      if (file_icy->open( (const char *)GoogleUrl.c_str()))
       {
         broadcastStatus("status", "playing");
-        buff = new AudioFileSourceBuffer(file_http, preallocateBuffer, preallocateBufferSize);
+        //updateLEDBrightness(50); // dim while playing
+        buff = new AudioFileSourceBuffer(file_icy, preallocateBuffer, preallocateBufferSize);
         mp3 = new AudioGeneratorMP3();
         if (strcmp(soundOutputValue,"INTERNAL_DAC") == 0 || strcmp(soundOutputValue,"EXTERNAL_DAC") == 0) 
         {

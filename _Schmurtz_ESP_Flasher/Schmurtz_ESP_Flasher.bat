@@ -61,8 +61,8 @@ echo+
 set /p userinp= ^> Select Option : 
 
 
-if /i "%userinp%"=="1" set Selected_Firmware=FW_v0.5_ESP32_esp32doit-devkit-v4.bin & goto :FlashESP32
-if /i "%userinp%"=="2" set Selected_Firmware=FW_v0.5_ESP8266_d1_mini.bin & goto :FlashESP8266
+if /i "%userinp%"=="1" set Selected_Firmware=FW_v0.6_ESP32_esp32doit-devkit-v4.bin & goto :FlashESP32
+if /i "%userinp%"=="2" set Selected_Firmware=FW_v0.6_ESP8266_d1_mini.bin & goto :FlashESP8266
 if /i "%userinp%"=="X" goto :EraseFlash
 if /i "%userinp%"=="C" goto :com_port
 if /i "%userinp%"=="Q" exit
