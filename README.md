@@ -167,7 +167,18 @@ You may also want to add a 220uF cap from USB 5V to GND just to help filter out 
  See my post on community forum for it :
  https://community.home-assistant.io/t/turn-an-esp8266-wemosd1mini-into-an-audio-notifier-for-home-assistant-play-mp3-tts-rttl/211499/130?u=schmurtz
  
- 
+ ## Thanks
+You like this project ? You want to improve this project ? 
+
+Do not hesitate, **Participate**, there are many ways :
+- If you don't know aruidno language you can test releases , and post some issues, some tips and tricks for daily use.
+- If you're a coder you can fork, edit and publish your modifications with Pull Request on github :)<br/>
+- Or you can buy me a coffee to keep me awake during night coding sessions :dizzy_face: !<br/><br/>
+[![Buy me a coffee][buymeacoffee-shield]][buymeacoffee]
+<br/><br/>
+
+[buymeacoffee-shield]: https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg
+[buymeacoffee]: https://www.buymeacoffee.com/schmurtz
  ===========================================================================
  #  Original description from MrDIY 
  
