@@ -12,9 +12,9 @@
 
 MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of the MrDiy's code with some modifications :
 
-- Ported to platformio (with differents recommanded settings for ESP8266audio)
+- Ported to platformio (with different recommended settings for ESP8266audio)
 - Can be compiled for ESP8266 and ESP32
-- IotWebConf updated to version v3.x (thanks to Markvader)
+- IotWebConf updated to version v3.x (thanks to @Markvader)
 - Google Translate TTS (multilingual and better voice quality than the local ESP8266SAM). [List of supported languages](https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js).
 - Set voice style of samvoice
 - Ability to play AAC (required for many web radio) and flac (not tested)
@@ -27,9 +27,9 @@ MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of th
 ```
 /*  Release Notes (yyyy/mm/dd):                                                             */
 /*  V0.1 - 2021/12/22 :                                                                     */
-/*    - Added these comments, pinouts and additionnal DAC settings                          */
+/*    - Added these comments, pinouts and additional DAC settings                           */
 /*    - Now compatible with platformio                                                      */
-/*    - Now compatible wih ESP32                                                            */
+/*    - Now compatible with ESP32                                                           */
 /*    - Added support for Google Translate TTS                                              */
 /*  V0.2 - 2021/12/29 :                                                                     */
 /*    - fix playing RTTTL & SAM                                                             */
@@ -39,7 +39,7 @@ MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of th
 /*    - fix errors msg "connect on fd 63, errno: 118, "Host is unreachable""                */
 /*      due to mqtt actions before wifi connects                                            */
 /*  V0.3 - 2022/01/03 :                                                                     */
-/*    - Migrate to IotWebConf 3.2.0   (Thanks to markvader)                                 */
+/*    - Migrate to IotWebConf 3.2.0   (Thanks to @markvader)                                */
 /*  V0.4 - 2022/01/08 :                                                                     */
 /*    - NEW: You can set these options directly in web interface                            */
 /*      (These settings are saved & restored after a reboot)                                */
@@ -49,7 +49,7 @@ MrDiy Audio Notifier is based on esp8266audio library. This repo uses most of th
 /*           * default TTS google voice language can be set in web interface                */
 /*    - NEW: Firmware update with web interface                                             */
 /*    - NEW: MQTT command feedback msg when a problems are detected (topic "answer")        */
-/*    - FIX: longer MQTT server name are supported                                          */
+/*    - FIX: longer MQTT server name is supported                                           */
 /*    - Breaking change : MQTT TTS commands renamed: samvoice /googlevoice                  */
 /*    - Less different firmwares + Schmurtz_ESP_Flasher : Windows script for easy flashing  */
 /*  V0.5 - 2022/02/18 :                                                                     */
@@ -75,11 +75,11 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
  Just after flashing you will find an AP (wifi network) called "MrDIYNotifier".
  The default password to connect to this wifi network is "mrdiy.ca".
  Once connected open web browser and go to http://192.168.4.1 , you will able to configure your wifi parameters, mqtt parameters here and sound parameters (internal DAC, external DAC or no DAC).
- The "AP password" must be changed (8 characters minimum), keep it in mind, it will be usefull to access to the web interface later.
+ The "AP password" must be changed (8 characters minimum), keep it in mind, it will be useful to be able to access the web interface later.
  
  Once connected to your wifi, to go back to configuration use this url in your favorite browser : http://MrDIYNotifier-idxxx.local   
  The login is "admin" and the password is the "AP password" that you have defined during wifi configuration.
- The precise way in which the wifi works is discribe in the [IotWebConf library readme](https://github.com/prampec/IotWebConf#use-cases).
+ The precise way in which the wifi works is described in the [IotWebConf library readme](https://github.com/prampec/IotWebConf#use-cases).
 
  
 
@@ -113,7 +113,7 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
                                 example: 0.7
 								
     - increase/decrease Volume  MQTT topic: "your_mqtt_topic/volume"
-                                MQTT load: + ou -
+                                MQTT load: + or -
                                 example: +  -> will increase volume of 0.1
 								
     - Say Text                  MQTT topic: "your_mqtt_topic/samvoice"
@@ -121,11 +121,11 @@ To flash it, plug your ESP in USB port, download this full repo and then run _Sc
                                 example: Hello There. How. Are. You?
 
     - Say Text with Google      MQTT topic: "your_mqtt_topic/googlevoice"
-                                MQTT load: Text to be read,language  (language is facultative)
+                                MQTT load: Text to be read,language  (language is facultative/optional)
                                 example: Hello There. How are you?
-                                         Bonjour, comment allez vous?,fr-FR
+                                example: Bonjour, comment allez vous?,fr-FR
                               
-For additionnal details, check the comments at the beginning of the "main.cpp".
+For additional details, check the comments at the beginning of the "main.cpp".
 
  How to connect ESP to speaker :
  ----
@@ -172,8 +172,8 @@ You may also want to add a 220uF cap from USB 5V to GND just to help filter out 
 You like this project ? You want to improve this project ? 
 
 Do not hesitate, **Participate**, there are many ways :
-- If you don't know aruidno language you can test releases , and post some issues, some tips and tricks for daily use.
-- If you're a coder you can fork, edit and publish your modifications with Pull Request on github :)<br/>
+- If you don't know Arduino language you can test releases, and post some issues, some tips and tricks for daily use.
+- If you're a coder you can fork, edit and publish your modifications with Pull Requests on GitHub :)<br/>
 - Or you can buy me a coffee to keep me awake during night coding sessions :dizzy_face: !<br/><br/>
 [![Buy me a coffee][buymeacoffee-shield]][buymeacoffee]
 <br/><br/>
