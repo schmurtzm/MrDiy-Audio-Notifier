@@ -79,7 +79,7 @@
                 "idle"          idle and waiting for a command
                 "error"         error when receiving a command: example: MP3 file URL can't be loaded
 
-    - The LWT MQTT topic: "your_custom_topic/LWT" with values:
+    - The LWT (Last Will & Testament) MQTT topic: "your_custom_topic/LWT" with values:
                   "online"
                   "offline"
 
