@@ -30,6 +30,14 @@
 /*    - FIX : longer MQTT server name are supported                                         */
 /*    - Breaking change : MQTT TTS commands renamed: samvoice /googlevoice                  */
 /*    - Less different firmwares + Schmurtz_ESP_Flasher : Windows script for easy flashing  */
+/*  V0.5 - 2022/02/18 :                                                                     */
+/*    - NEW: increase and decrease volume with MQTT commands                                */
+/*    - NEW: increase and decrease volume physical buttons on GPIO                          */
+/*  V0.6 - 2022/02/22 :                                                                     */
+/*    - FIX: Google TTS : a lot better, almost no hang                                      */
+/*  V0.61- 2022/02/22 :                                                                     */
+/*    - FIX: SAMVOICE TTS on ESP8266                                                        */
+/*    - FIX: Restore generated unique name for MQTT                                         */
 /*                                                                                          */
 /********************************************************************************************/
 
