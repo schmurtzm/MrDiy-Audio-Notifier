@@ -226,6 +226,13 @@ boolean willRetain = false;
 byte willQoS = 0;
 
 int counter = 0;
+
+// setting PWM properties
+const int freq = 5000;
+const int ledChannel = 0;
+const int resolution = 8;
+
+
 // AudioRelated ---------------------------
 
 // ============== declarations for buttons : ==============
@@ -319,7 +326,7 @@ iotwebconf::SelectParameter samVoice = IotWebConfSelectParameter("samVoice", "sa
 iotwebconf::TextParameter GoogleTTSvoiceParam = iotwebconf::TextParameter("Google TTS Voice code (<a href=""https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js"" target=""_blank"">list</a>)", "GoogleTTSvoice", GoogleTTSvoice, sizeof(GoogleTTSvoice));
 
 
-//#define LED_Pin           5       // external LED pin
+#define LED_Pin           2       // external LED pin
 
 char *mqttFullTopic(const char action[])
 {
@@ -351,7 +358,12 @@ void broadcastStatus(const char topic[], String msg)
 void updateLEDBrightness(int brightness_percentage)
 {
 #ifdef LED_Pin
+#ifdef ESP32
+  ledcWrite(ledChannel, (int)brightness_percentage * 255 / 100);
+#else
   analogWrite(LED_Pin, (int)brightness_percentage * 255 / 100);
+#endif
+
 #endif
 }
 
@@ -1039,6 +1051,8 @@ void setup()
 #endif
 
 #ifdef LED_Pin
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(LED_Pin, ledChannel);
   pinMode(LED_Pin, OUTPUT);
   updateLEDBrightness(10);
 #endif
