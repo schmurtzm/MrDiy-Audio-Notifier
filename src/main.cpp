@@ -1049,13 +1049,14 @@ void setup()
 #ifdef DEBUG_FLAG
   Serial.begin(115200);
 #endif
-#ifdef ESP32
+
 #ifdef LED_Pin
+#ifdef ESP32
   ledcSetup(ledChannel, freq, resolution);
   ledcAttachPin(LED_Pin, ledChannel);
   pinMode(LED_Pin, OUTPUT);
-  updateLEDBrightness(10);
 #endif
+  updateLEDBrightness(10);
 #endif
   mqttgroup.addItem(&mqttServerParam);
   mqttgroup.addItem(&mqttUserNameParam);
