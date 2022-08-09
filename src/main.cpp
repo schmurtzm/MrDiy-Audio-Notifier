@@ -771,14 +771,14 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
       String StrnewMsg =  newMsg;
       String SelectedLanguage;
       bool KnownLanguage = false;
-      const char allowedLang[68][LANGMAXLENGTH] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
+      const char allowedLang[70][LANGMAXLENGTH] = { "af-ZA" , "sq" , "ar-AE" , "hy" , "bn-BD" , "bn-IN" , "bs" , "my" , "ca-ES" , "cmn-H" , "hr-HR" ,
         "cs-CZ" , "da-DK" , "nl-NL" , "en-AU" , "en-GB" , "en-US" , "eo" , "et" , "fil-P" , "fi-FI" , "fr-FR" , "fr-CA" , "de-DE" , "el-GR" ,
         "gu" , "hi-IN" , "hu-HU" , "is-IS" , "id-ID" , "it-IT" , "ja-JP" , "kn" , "km" , "ko-KR" , "la" , "lv" , "mk" , "ml" , "mr" , "ne" ,
         "nb-NO" , "pl-PL" , "pt-BR" , "ro-RO" , "ru-RU" , "sr-RS" , "si" , "sk-SK" , "es-MX" , "es-ES" , "sw" , "sv-SE" , "ta" , "te" , "th-TH" ,
-        "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en" , "ja" , "ru"};   
+        "tr-TR" , "uk-UA" , "ur" , "vi-VN" , "cy" , "fr" , "de" , "en" , "ko","ja" , "ru","zh-TW","zh-CN"};   
          // source of supported languages : https://github.com/florabtw/google-translate-tts/blob/master/src/voices.js
          // Could be converted into a dropdown list in web UI for more simplicity....
-
+         //support language also to view on the page https://cloud.google.com/translate/docs/languages  hmjvaline added comment
         //String StrnewMsg =  String((char *)payload);
         int index = StrnewMsg.lastIndexOf(',');   // take position of the last ","
         if ( StrnewMsg.length() -  index <= LANGMAXLENGTH)     // it could be a language parameter, let's check if it exists in the list...
@@ -1049,14 +1049,14 @@ void setup()
 #ifdef DEBUG_FLAG
   Serial.begin(115200);
 #endif
-
+#ifdef ESP32
 #ifdef LED_Pin
   ledcSetup(ledChannel, freq, resolution);
   ledcAttachPin(LED_Pin, ledChannel);
   pinMode(LED_Pin, OUTPUT);
   updateLEDBrightness(10);
 #endif
-
+#endif
   mqttgroup.addItem(&mqttServerParam);
   mqttgroup.addItem(&mqttUserNameParam);
   mqttgroup.addItem(&mqttUserPasswordParam);
